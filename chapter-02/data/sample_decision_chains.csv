@@ -1,0 +1,5 @@
+model_id,business_process,decision_type,exposure_type,exposure_channel
+M1,Loan Underwriting,approval,credit_loss,credit
+M2,Limit Management,limit_setting,market_loss,market
+M3,Customer Support,content_generation,conduct_fine,conduct
+M5,Transaction Monitoring,alert_triage,operational_loss,operational

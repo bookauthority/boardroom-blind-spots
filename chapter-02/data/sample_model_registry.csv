@@ -1,0 +1,6 @@
+model_id,name,type,business_line,owner,vendor
+M1,Credit Default Classifier,AI,Retail Lending,alice,Internal
+M2,Market Risk Forecaster,AI,Markets,bob,Internal
+M3,Chat Assist Bot,AI,Customer Service,carol,VendorCo
+M4,Legacy Rule Engine,RULES,Retail Lending,dave,Internal
+M5,Fraud Detector,AI,Payments,erin,VendorCo

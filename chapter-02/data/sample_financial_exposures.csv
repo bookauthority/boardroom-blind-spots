@@ -1,0 +1,5 @@
+exposure_type,description,illustrative_scale
+credit_loss,Losses from customer defaults,high
+market_loss,Losses from market movements,medium
+conduct_fine,Regulatory fines,medium
+operational_loss,Operational incidents,low

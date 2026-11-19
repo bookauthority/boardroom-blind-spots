@@ -1,0 +1,5 @@
+pipeline_id,upstream_source,consumer_model_id
+P1,core_loan_book,M1
+P2,market_data_feed,M2
+P3,chat_logs,M3
+P4,card_tx_stream,M5

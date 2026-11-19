@@ -1,0 +1,527 @@
+{
+  "experiment_id": "exp-ch14-boardroom-toolkits-v1",
+  "hypothesis": "Providing boards with a standardized, minimal AI oversight toolkit (dashboards, inventories, reporting and policy templates, and challenge guides) that is auto-generated from the same underlying AI risk data will improve (a) completeness and consistency of board AI risk coverage and (b) usability for non-technical directors, relative to current ad-hoc, manually assembled packs.",
+  "baseline": {
+    "description": "Current-state, manually prepared AI oversight materials used for board and risk committee meetings, assembled without the unified Chapter 14 toolkit or auto-generation pipeline.",
+    "artifacts": [
+      "Manual slide deck describing key AI initiatives and risks (e.g., PowerPoint/PDF) created by risk/AI teams for board or risk committee.",
+      "Unstructured AI model list or spreadsheet (if available) without standardized risk inventory fields (e.g., no consistent criticality, autonomy level, or systemic impact ratings).",
+      "Generic risk heatmap that mixes AI and non-AI risks without explicit linkage to AI systems or systemic risk pathways.",
+      "Narrative-only board paper for AI incidents or near-misses (free-text documents without a common schema).",
+      "Existing AI or model risk policies not harmonized into an explicit, board-level AI use policy and AI risk appetite statement."
+    ],
+    "data_source_requirements": [
+      "At least one recent (\u2264 12 months) board or risk committee pack that includes AI-related content.",
+      "Existing model inventory, product inventory, or risk register that flags AI/ML use-cases (even if incomplete).",
+      "At least one documented AI incident or near-miss, or a proxy incident in model risk, operational risk, or conduct risk attributed to algorithmic behavior."
+    ]
+  },
+  "treatment": {
+    "description": "Use of a unified, reproducible Chapter 14 toolkit implementation that ingests the same AI risk data and generates a standardized board pack: AI risk inventory, heatmaps, board-level dashboards, policy and escalation templates, challenge guides, and incident/near-miss templates.",
+    "components": [
+      {
+        "name": "Minimal Viable AI Oversight Pack Generator",
+        "sections_covered": [
+          "14.1",
+          "14.7"
+        ],
+        "description": "Script or notebook that reads standardized AI inventory and incident data and automatically produces a board-ready pack (e.g., static HTML/PDF or slide export) including key exhibits from sections 14.2\u201314.6."
+      },
+      {
+        "name": "AI Risk Inventory Template and Heatmap Engine",
+        "sections_covered": [
+          "14.2"
+        ],
+        "description": "Data schema and notebook/web app that captures AI systems with standardized fields (criticality, autonomy, systemic impact channels, third-party dependence, controls in place) and generates portfolio-level heatmaps."
+      },
+      {
+        "name": "Board-Level AI Risk Dashboard",
+        "sections_covered": [
+          "14.3",
+          "14.7"
+        ],
+        "description": "Simple dashboard (e.g., Streamlit/Plotly/BI-like) showing a small, opinionated set of board-level indicators: number of high-criticality AI systems, open validation issues, incidents by severity, key metrics from Chapter 6, mapped to business lines."
+      },
+      {
+        "name": "Policy and Escalation Template Library",
+        "sections_covered": [
+          "14.4"
+        ],
+        "description": "Version-controlled, parameterizable text templates for AI Use Policy, AI Risk Appetite Statement, and AI Escalation Protocols, designed to be instantiated for the institution via configuration (e.g., YAML/JSON)."
+      },
+      {
+        "name": "Challenge Guides and Question Packs",
+        "sections_covered": [
+          "14.5"
+        ],
+        "description": "Structured, machine-readable lists of board questions organized by committee and topic (e.g., credit AI, trading AI, fraud AI), with simple filters and export to PDF/Word/Markdown."
+      },
+      {
+        "name": "AI Incident and Near-Miss Reporting Forms",
+        "sections_covered": [
+          "14.6"
+        ],
+        "description": "Schema and form generator for standardized AI incident/near-miss reporting, including fields for systemic pathways, model behavior, business impact, and controls; output compatible with the dashboard and board pack."
+      },
+      {
+        "name": "Customization Profiles",
+        "sections_covered": [
+          "14.8"
+        ],
+        "description": "Configuration-driven variants of the toolkit for at least three archetypes (universal bank, digital bank/fintech, asset manager/insurer) and at least two regulatory geographies (e.g., EU, US/UK) altering labels, metrics emphasis, and policy language blocks."
+      }
+    ],
+    "treatment_principles": [
+      "Baseline and treatment must use the same underlying AI inventory and incident dataset so that differences in results are due to the toolkit, not the underlying risk data.",
+      "Treatment must be executable end-to-end by a technical practitioner using repository code, producing artifacts in standard formats (HTML, PDF, CSV, Markdown).",
+      "Toolkit defaults should align with the book\u2019s governance framing and financial-services-specific systemic risk emphasis."
+    ]
+  },
+  "workloads": [
+    {
+      "name": "W1-universal-bank-quarterly-pack",
+      "description": "Apply both baseline and treatment approaches to create AI oversight materials for a universal bank\u2019s quarterly risk committee meeting.",
+      "inputs": {
+        "institution_profile": "Large universal bank operating in EU and US, with AI in credit underwriting, trading signal generation, fraud detection, and customer service.",
+        "data": {
+          "ai_inventory": "CSV/JSON of ~30 AI/ML systems with fields: system_id, business_line, product, AI_type, autonomy_level, criticality_tier, financial_exposure, systemic_pathways, vendor_flag, geography, validation_status.",
+          "incidents": "AI incident/near-miss log for last 12\u201324 months with severity, business_impact, root_cause, remediation_status.",
+          "existing_policies": "Text/PDF of current AI/model risk policies and risk appetite statements.",
+          "board_calendar": "High-level board and risk committee calendar with standing agenda items."
+        }
+      },
+      "procedures": {
+        "baseline": [
+          "Use existing processes to prepare the next board/risk committee pack that includes AI-related risks, drawing only on existing templates and practices.",
+          "Record preparation time, number of contributors, and pages/slides related to AI oversight.",
+          "Have 5\u201310 eligible senior stakeholders (directors, executives, or equivalent) independently score the pack using a standardized rubric (see metrics)."
+        ],
+        "treatment": [
+          "Normalize the same AI inventory and incident data to the repository\u2019s schema.",
+          "Run the AI Risk Inventory Template and Heatmap Engine to produce AI portfolio views.",
+          "Run the Board-Level AI Risk Dashboard and Oversight Pack Generator to create a standardized board pack with integrated heatmaps, dashboard snapshots, incident summaries, and tailored challenge questions.",
+          "Instantiate draft AI Use Policy, AI Risk Appetite, and Escalation Protocol templates using configuration appropriate to the bank\u2019s profile.",
+          "Share the treatment pack with a *different but comparable* group of 5\u201310 senior stakeholders (or the same group after a sufficient washout period) to score using the same rubric."
+        ]
+      }
+    },
+    {
+      "name": "W2-digital-bank-monthly-ops-review",
+      "description": "Test toolkit usability and coverage for a smaller, more automated digital bank during a monthly executive ops and risk review.",
+      "inputs": {
+        "institution_profile": "Digital bank/fintech heavily reliant on AI for onboarding, KYC, fraud, and personalization; operating primarily in one jurisdiction.",
+        "data": {
+          "ai_inventory": "Smaller set (~10\u201315) of AI systems with comparatively high autonomy and operational criticality.",
+          "incidents": "Operational incident log including AI-related false positives/negatives in fraud and onboarding.",
+          "governance": "Simpler committee structure and limited formal AI policy texts."
+        }
+      },
+      "procedures": {
+        "baseline": [
+          "Use current methods (often ad-hoc) to brief executives on AI risks during a monthly ops review.",
+          "Record preparation effort and capture participant feedback on clarity and coverage."
+        ],
+        "treatment": [
+          "Apply the same toolkit pipeline to generate a right-sized AI oversight pack configured for a digital bank archetype.",
+          "Collect analogous feedback and preparation metrics."
+        ]
+      }
+    },
+    {
+      "name": "W3-asset-manager-annual-board-strategy",
+      "description": "Assess the toolkit\u2019s adaptability to an asset manager or insurer during an annual strategy and risk deep-dive focused on AI in investment and pricing models.",
+      "inputs": {
+        "institution_profile": "Asset manager or insurer using AI in portfolio construction, risk analytics, and pricing/underwriting.",
+        "data": {
+          "ai_inventory": "~10\u201320 AI models tied to portfolios or product lines, tagged with assets under management or premium volume influenced by each model.",
+          "incidents": "Log of model risk events and near-misses (e.g., mispricing, model drift, limit breaches) with AI attribution.",
+          "regulatory_context": "Region-specific conduct, suitability, solvency and product governance requirements."
+        }
+      },
+      "procedures": {
+        "baseline": [
+          "Prepare the existing annual AI risk and model risk update for the board using current documents and slides only.",
+          "Capture the structure and perceived completeness of systemic risk coverage."
+        ],
+        "treatment": [
+          "Configure the toolkit for an asset manager/insurer profile and relevant geography.",
+          "Generate AI risk inventory, heatmaps, dashboard views, and tailored challenge questions emphasizing conduct, liquidity/systemic spillovers, and capital/solvency angle.",
+          "Collect comparable feedback and effort metrics."
+        ]
+      }
+    }
+  ],
+  "controls": {
+    "data_controls": [
+      "Use exactly the same AI inventory and incident dataset for both baseline and treatment in each workload.",
+      "Freeze datasets before experiment execution and store them version-controlled in the repository (or referenced via checksums) to ensure reproducibility.",
+      "Redact all personally identifiable information and confidential details; use synthetic or anonymized data where necessary."
+    ],
+    "participant_controls": [
+      "Use comparable participant profiles (e.g., directors, C-suite, senior risk leaders) for baseline and treatment assessments within each workload.",
+      "If re-using the same participants, enforce a washout period and counterbalance the order (some see baseline first, others see treatment first) to reduce order bias.",
+      "Ensure participants are blinded to which materials are baseline vs toolkit-generated when scoring packs."
+    ],
+    "process_controls": [
+      "Time-box preparation windows and record actual preparation hours for baseline and treatment separately.",
+      "Standardize the evaluation rubric and survey instruments across workloads.",
+      "Ensure that the toolkit configuration is documented and kept constant for all treatment runs within a workload."
+    ],
+    "technical_controls": [
+      "Pin code dependencies (requirements.txt, lockfile, or environment.yml) and document exact versions.",
+      "Run all treatment scripts in a clean environment using the provided run instructions.",
+      "Log run configuration, timestamps, and commit hashes associated with each generated artifact."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "prep_time_hours",
+      "description": "Total human time spent preparing the AI-related portion of the board/committee materials for a given meeting.",
+      "unit": "person-hours"
+    },
+    {
+      "name": "num_artifacts",
+      "description": "Number of distinct AI oversight artifacts presented (e.g., inventory tables, heatmaps, dashboards, incident summaries, policy summaries, question lists).",
+      "unit": "count"
+    },
+    {
+      "name": "coverage_score",
+      "description": "Average expert/board rating of how completely the materials cover AI systemic risk dimensions: inventory visibility, criticality, systemic pathways, incidents, controls, and open issues.",
+      "unit": "score_1_to_5"
+    },
+    {
+      "name": "clarity_score",
+      "description": "Average rating by directors/executives of how understandable the AI oversight materials are to a non-technical audience.",
+      "unit": "score_1_to_5"
+    },
+    {
+      "name": "actionability_score",
+      "description": "Average rating of how well the pack supports concrete board actions (e.g., decisions, challenges, follow-ups).",
+      "unit": "score_1_to_5"
+    },
+    {
+      "name": "customization_effort",
+      "description": "Incremental time required to adapt the toolkit outputs (treatment) to a specific business model and geography beyond base generation (e.g., editing policy templates, labels, committee names).",
+      "unit": "person-hours"
+    },
+    {
+      "name": "consistency_score",
+      "description": "Expert assessment of internal consistency between artifacts in the same pack (e.g., heatmap cells align with inventory, incidents align with dashboard metrics).",
+      "unit": "score_1_to_5"
+    },
+    {
+      "name": "incident_structuring_score",
+      "description": "Expert assessment of how well incident/near-miss reporting templates capture key attributes relevant to systemic risk, root cause analysis, and governance escalation.",
+      "unit": "score_1_to_5"
+    },
+    {
+      "name": "question_coverage_score",
+      "description": "Board/audience assessment of whether provided challenge guides and question lists meaningfully support oversight and challenge across key AI risk areas.",
+      "unit": "score_1_to_5"
+    }
+  ],
+  "success_criteria": {
+    "primary": [
+      "For each workload, treatment reduces prep_time_hours for AI oversight materials by at least 20% relative to baseline, after an initial learning period, without reducing coverage_score or clarity_score.",
+      "Across all workloads, treatment improves average coverage_score and clarity_score by \u2265 0.5 points (on a 1\u20135 scale) versus baseline.",
+      "Consistency_score for treatment packs is \u2265 4.0 on average and at least 0.5 points higher than the corresponding baseline scores."
+    ],
+    "secondary": [
+      "Actionability_score and question_coverage_score under treatment are \u2265 4.0 on average across workloads.",
+      "Customization_effort for adapting the toolkit to a new institution profile within the same archetype (e.g., another universal bank) is \u2264 4 person-hours.",
+      "Incident_structuring_score for the treatment\u2019s incident templates is \u2265 4.0 and at least 0.5 points above baseline incident documentation practices."
+    ],
+    "interpretation_notes": [
+      "Failure to meet all thresholds does not invalidate the toolkit but indicates where further iteration is needed (e.g., usability vs coverage trade-offs).",
+      "Qualitative feedback from participants should be logged and used to contextualize metric movements, especially in smaller institutions where N is limited."
+    ]
+  },
+  "failure_modes": [
+    {
+      "name": "data_misalignment",
+      "description": "AI inventory and incident data are incomplete or inconsistent across baseline and treatment runs, confounding comparisons.",
+      "mitigations": [
+        "Run a data quality check script before both baseline and treatment.",
+        "Impute or clearly mark missing fields; avoid using records with critical missingness in analysis.",
+        "Document any manual data cleaning steps."
+      ]
+    },
+    {
+      "name": "participant_bias",
+      "description": "Participants know which pack is toolkit-generated and unconsciously favor or disfavor it; or treatment is always reviewed second, benefiting from learning effects.",
+      "mitigations": [
+        "Blind participants to condition labels; present both as alternative formats A and B.",
+        "Randomize order of exposure where feasible.",
+        "Use the same evaluation rubric across conditions and workloads."
+      ]
+    },
+    {
+      "name": "scope_creep_in_treatment",
+      "description": "Practitioners add extra custom analysis or manual curation to the treatment pack but not to the baseline, overstating the toolkit\u2019s benefits.",
+      "mitigations": [
+        "Clearly distinguish between auto-generated content and additional manual additions.",
+        "Track manual customization time separately (contributing to customization_effort).",
+        "Limit manual edits to content that could reasonably be parameterized in future iterations."
+      ]
+    },
+    {
+      "name": "overfitting_to_example_institution",
+      "description": "Toolkit design and defaults are tuned excessively to one archetype (e.g., universal bank in EU), reducing generalizability.",
+      "mitigations": [
+        "Ensure at least three archetype-specific profiles (universal bank, digital bank, asset manager/insurer) are exercised.",
+        "Document configuration differences across profiles in the repository.",
+        "Collect and compare metrics across workloads to identify profile-specific weaknesses."
+      ]
+    },
+    {
+      "name": "technical_environment_issues",
+      "description": "Differences in software versions, libraries, or OS environments cause divergent outputs or failures to run the toolkit.",
+      "mitigations": [
+        "Provide a containerized environment (e.g., Docker) or reproducible environment specification.",
+        "Pin dependencies and run automated smoke tests before experimentation.",
+        "Log environment metadata in experiment outputs."
+      ]
+    },
+    {
+      "name": "misinterpretation_of_metrics",
+      "description": "Executives interpret coverage_score or clarity_score differently across conditions or workloads, lowering reliability.",
+      "mitigations": [
+        "Provide clear, written definitions and examples for each rubric dimension.",
+        "Run a brief calibration exercise with participants before collecting scores.",
+        "Where possible, include multiple raters and analyze inter-rater agreement."
+      ]
+    }
+  ],
+  "required_environment": {
+    "software": [
+      "Python 3.10+ (or as specified in repository environment file).",
+      "Data analysis libraries: pandas, numpy.",
+      "Visualization/dashboard libraries: plotly and/or matplotlib, plus a simple web framework like Streamlit or Dash, or notebook environment (e.g., Jupyter).",
+      "PDF/HTML/Markdown export tools (e.g., nbconvert, weasyprint, or equivalent).",
+      "YAML/JSON parser for configuration-driven customization (e.g., PyYAML).",
+      "Optional: container runtime (Docker/Podman) if using provided images."
+    ],
+    "hardware": [
+      "Standard modern laptop or VM with at least 8 GB RAM and several GB free disk space.",
+      "No GPU required; compute requirements are modest as workloads are metadata- and visualization-heavy, not model-training-heavy."
+    ],
+    "access": [
+      "Local or secure network access to the anonymized/synthetic AI inventory and incident datasets.",
+      "Read/write access to the experiment\u2019s output directory within a secure project workspace.",
+      "For real institutional deployments, appropriate data governance approvals and redaction processes must be in place."
+    ]
+  },
+  "run_instructions": [
+    "Clone the repository https://github.com/bookauthority/boardroom-blind-spots and checkout the tag or branch corresponding to this experiment specification (e.g., `git checkout exp-ch14-boardroom-toolkits-v1`).",
+    "Set up the environment using the provided instructions (e.g., `conda env create -f environment.yml` or `pip install -r requirements.txt`). Optionally, build and run the provided container image if available.",
+    "Prepare input datasets for each workload: W1 (universal bank), W2 (digital bank), W3 (asset manager/insurer). Use the documented schemas in the `data_schemas/` directory. Place cleaned and versioned datasets under `data/inputs/<workload_id>/`.",
+    "Run the baseline preparation documentation script (if provided) or record manual baseline preparation processes for each workload. Store any baseline packs under `outputs/baseline/<workload_id>/` and log preparation_time and participants in a metadata file (see evidence_schema).",
+    "Execute the AI Risk Inventory and Heatmap Engine for each workload: `python tools/inventory_heatmap.py --config configs/<workload_id>.yml --input data/inputs/<workload_id>/ai_inventory.csv --output outputs/treatment/<workload_id>/inventory_heatmap/`.",
+    "Execute the Board-Level Dashboard generator: either run `streamlit run dashboards/board_ai_dashboard.py -- --config configs/<workload_id>.yml` to view interactively, or run a headless export script (e.g., `python dashboards/export_board_views.py`) to generate static artifacts (PNG/HTML) under `outputs/treatment/<workload_id>/dashboard_views/`.",
+    "Instantiate policy and escalation templates using configuration files: `python tools/generate_policies.py --config configs/<workload_id>.yml --output outputs/treatment/<workload_id>/policies/`.",
+    "Generate AI incident and near-miss reports from the incidents dataset: `python tools/incident_reporter.py --config configs/<workload_id>.yml --input data/inputs/<workload_id>/incidents.csv --output outputs/treatment/<workload_id>/incidents/`.",
+    "Generate challenge guides and question lists for relevant committees: `python tools/question_packs.py --config configs/<workload_id>.yml --output outputs/treatment/<workload_id>/questions/`.",
+    "Run the Minimal Viable AI Oversight Pack Generator to combine inventory views, heatmaps, dashboard snapshots, incident summaries, policy snippets, and challenge guides into a single pack: `python tools/generate_board_pack.py --config configs/<workload_id>.yml --sources outputs/treatment/<workload_id>/ --output outputs/treatment/<workload_id>/board_pack/`.",
+    "For each workload, organize blinded evaluation sessions where participants review baseline and treatment materials (labeled generically) and complete the standardized evaluation survey. Store raw survey data under `data/evaluations/<workload_id>/` with appropriate anonymization.",
+    "Compute experiment metrics by running the analysis script: `python analysis/evaluate_toolkit_effects.py --inputs data/evaluations/ --metadata data/metadata/ --outputs outputs/analysis/`. This script should read baseline and treatment metadata, compute metrics defined in this specification, and output structured evidence conforming to evidence_schema.",
+    "Document any deviations from these instructions, environment differences, or data issues in a run log file (e.g., `outputs/run_logs/<timestamp>.md`) for reproducibility and later interpretation."
+  ],
+  "evidence_schema": {
+    "type": "object",
+    "description": "Schema for logging experimental runs and results without asserting outcomes in advance.",
+    "properties": {
+      "experiment_id": {
+        "type": "string",
+        "description": "Identifier of the experiment, e.g., `exp-ch14-boardroom-toolkits-v1`."
+      },
+      "repository_commit": {
+        "type": "string",
+        "description": "Git commit hash used for the run."
+      },
+      "environment": {
+        "type": "object",
+        "properties": {
+          "python_version": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "version"
+              ]
+            }
+          },
+          "hardware": {
+            "type": "object",
+            "properties": {
+              "cpu": {
+                "type": "string"
+              },
+              "ram_gb": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "python_version",
+          "os"
+        ]
+      },
+      "workloads": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "workload_id": {
+              "type": "string"
+            },
+            "institution_profile": {
+              "type": "string"
+            },
+            "data_version": {
+              "type": "string"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "condition": {
+                    "type": "string",
+                    "enum": [
+                      "baseline",
+                      "treatment"
+                    ]
+                  },
+                  "prep_time_hours": {
+                    "type": "number"
+                  },
+                  "num_artifacts": {
+                    "type": "number"
+                  },
+                  "customization_effort": {
+                    "type": "number"
+                  },
+                  "evaluation_scores": {
+                    "type": "array",
+                    "description": "Per-participant scores for clarity, coverage, actionability, consistency, incident structuring, and question coverage.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "participant_id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "clarity_score": {
+                          "type": "number"
+                        },
+                        "coverage_score": {
+                          "type": "number"
+                        },
+                        "actionability_score": {
+                          "type": "number"
+                        },
+                        "consistency_score": {
+                          "type": "number"
+                        },
+                        "incident_structuring_score": {
+                          "type": "number"
+                        },
+                        "question_coverage_score": {
+                          "type": "number"
+                        },
+                        "comments": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "participant_id",
+                        "clarity_score",
+                        "coverage_score"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "condition"
+                ]
+              }
+            }
+          },
+          "required": [
+            "workload_id",
+            "conditions"
+          ]
+        }
+      },
+      "analysis": {
+        "type": "object",
+        "description": "Optional, computed comparison metrics between baseline and treatment for each workload.",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "by_workload": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "workload_id": {
+                  "type": "string"
+                },
+                "delta_prep_time_hours": {
+                  "type": "number"
+                },
+                "delta_coverage_score": {
+                  "type": "number"
+                },
+                "delta_clarity_score": {
+                  "type": "number"
+                },
+                "delta_actionability_score": {
+                  "type": "number"
+                },
+                "delta_consistency_score": {
+                  "type": "number"
+                },
+                "delta_incident_structuring_score": {
+                  "type": "number"
+                },
+                "delta_question_coverage_score": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "notes": {
+        "type": "string",
+        "description": "Free-text field capturing deviations from protocol, data issues, or contextual information needed for interpretation."
+      }
+    },
+    "required": [
+      "experiment_id",
+      "repository_commit",
+      "environment",
+      "workloads"
+    ]
+  }
+}

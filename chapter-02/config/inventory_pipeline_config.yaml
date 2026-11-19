@@ -1,0 +1,6 @@
+# Simplified config stub for inventory pipeline.
+# Not parsed by this minimal implementation but included for completeness.
+source_systems:
+  - model_registry
+  - data_pipelines
+  - vendor_catalog

@@ -1,0 +1,589 @@
+{
+  "experiment_id": "ch02-ai-attack-surface-mapping-v1",
+  "hypothesis": "A scripted, standardized AI risk-inventory and mapping pipeline (treatment) will produce a more complete, consistent, and decision-usable AI attack-surface map than a manually compiled inventory (baseline), as measured by coverage of AI assets and dependencies, reproducibility across runs, and quality of board-ready risk visualizations.",
+  "baseline": {
+    "description": "Manual AI inventory and risk mapping using spreadsheets and ad hoc diagrams.",
+    "process": [
+      "Risk, technology, and business representatives jointly fill out a shared spreadsheet template listing known AI models and tools, their primary business processes, and key attributes (owner, purpose, criticality, deployment environment).",
+      "Dependencies (data sources, APIs, vendors) are captured in free-text columns without enforced schema.",
+      "Decision chains and financial exposures are documented through narrative descriptions and manually drawn diagrams (e.g., PowerPoint, Visio).",
+      "Heatmaps of AI criticality and risk are created manually by risk management staff using pivot tables and conditional formatting in spreadsheets or slideware.",
+      "No automated checks enforce consistency of naming (e.g., the same model referenced differently across entries) or completeness (e.g., missing dependencies, missing business process mappings)."
+    ],
+    "expected_limitations": [
+      "Under-reporting of AI assets, especially small automations and shadow AI used by teams outside central governance.",
+      "Inconsistent naming and incomplete mapping of dependencies (data pipelines, shared features, third-party services).",
+      "Maps and heatmaps are static and difficult to refresh when systems or usage patterns change.",
+      "Limited reproducibility: different teams or collection dates produce significantly divergent inventories."
+    ]
+  },
+  "treatment": {
+    "description": "Semi-automated AI risk-inventory and attack-surface mapping pipeline implemented as reproducible scripts and templates in the companion repository.",
+    "components": [
+      "A standardized inventory schema (YAML/JSON + CSV) defining fields for AI assets, business processes, criticality, controllability, dependencies, decision-chain links, and vendor information.",
+      "Data collectors that ingest metadata from source-of-truth systems (e.g., existing model registries, MRM inventories, CI/CD metadata, cloud tagging) and merge it with a curated spreadsheet maintained by risk owners.",
+      "Dependency graph builder that transforms the enriched inventory into a graph representation (e.g., NetworkX or similar) capturing relationships among models, data pipelines, APIs, vendors, and business processes.",
+      "Decision-chain mapper that links model outputs to downstream business metrics and financial exposure points using a small, explicit mapping file.",
+      "Visualization scripts that generate: (a) AI asset tables and risk inventories suitable for board packs, (b) dependency and decision-chain graphs, and (c) heatmaps of AI criticality and concentration risk across products, processes, and vendors.",
+      "Validation checks that flag missing fields, inconsistent identifiers, orphaned dependencies, and other data-quality issues in the inventory."
+    ],
+    "intended_benefits": [
+      "Higher coverage of AI assets via combination of automated discovery and structured manual curation.",
+      "Standardized, machine-readable representation of AI assets and dependencies that can be re-run and updated periodically.",
+      "Consistent visualizations that can be directly embedded into board materials (heatmaps, tiering views, concentration views).",
+      "Improved ability for risk and audit teams to query and filter the AI landscape along governance-relevant dimensions (criticality, controllability, vendor, business line)."
+    ]
+  },
+  "workloads": [
+    {
+      "name": "workload-1-ai-inventory-pipeline",
+      "description": "Run the AI inventory and dependency-mapping pipeline over a synthetic but realistic sample of AI systems, data pipelines, and vendors, comparing baseline manual capture vs. treatment pipeline outputs.",
+      "inputs": {
+        "synthetic_source_systems": [
+          {
+            "system": "model_registry",
+            "file": "data/sample_model_registry.csv",
+            "description": "List of AI and non-AI models with owners, business lines, and deployment environments."
+          },
+          {
+            "system": "data_pipelines",
+            "file": "data/sample_data_pipelines.csv",
+            "description": "List of data pipelines, upstream sources, and downstream consumers."
+          },
+          {
+            "system": "vendor_catalog",
+            "file": "data/sample_vendor_models.csv",
+            "description": "List of third-party AI services, APIs, and SaaS tools with risk tags."
+          }
+        ],
+        "manual_inventory_baseline": {
+          "file": "data/manual_inventory_baseline.xlsx",
+          "description": "Hand-compiled inventory representing what a cross-functional team might produce manually from interviews."
+        },
+        "inventory_schema": {
+          "file": "schemas/ai_inventory_schema.yaml",
+          "description": "Canonical schema for AI risk inventory, including required fields and validation rules."
+        },
+        "config": {
+          "file": "config/inventory_pipeline_config.yaml",
+          "description": "Configuration file specifying mapping from source fields to inventory schema, identity resolution rules, and inclusion filters for 'AI' vs 'non-AI' systems."
+        }
+      },
+      "baseline_procedure": [
+        "Open data/manual_inventory_baseline.xlsx and review the manually compiled list of AI assets, dependencies, and processes.",
+        "Using only the manual_inventory_baseline.xlsx file, produce a CSV export named outputs/baseline/ai_inventory.csv containing all rows and columns relevant to AI assets.",
+        "Create or confirm the existence of a manually curated diagram or table listing dependencies, saved as outputs/baseline/dependency_list.csv (e.g., one row per dependency: model_id, dependency_type, dependency_name).",
+        "Generate a simple heatmap in a spreadsheet tool (e.g., Excel) of models by business_line (rows) and criticality_tier (columns), and export it as outputs/baseline/ai_heatmap.png or .pdf."
+      ],
+      "treatment_procedure": [
+        "Ensure synthetic source CSV files and the schema/config files are available in the expected directories.",
+        "Run the inventory merge script: `python scripts/build_ai_inventory.py --config config/inventory_pipeline_config.yaml --output outputs/treatment/ai_inventory.csv`.",
+        "Execute the dependency graph builder: `python scripts/build_dependency_graph.py --inventory outputs/treatment/ai_inventory.csv --output outputs/treatment/dependency_graph.gml`.",
+        "Generate board-ready tables and CSVs: `python scripts/render_inventory_tables.py --inventory outputs/treatment/ai_inventory.csv --outdir outputs/treatment/tables/`.",
+        "Create visualization artifacts (dependency maps, heatmaps, concentration charts): `python scripts/render_risk_visuals.py --inventory outputs/treatment/ai_inventory.csv --graph outputs/treatment/dependency_graph.gml --outdir outputs/treatment/visuals/`.",
+        "Run validation checks: `python scripts/validate_inventory.py --inventory outputs/treatment/ai_inventory.csv --schema schemas/ai_inventory_schema.yaml --report outputs/treatment/validation_report.json`."
+      ]
+    },
+    {
+      "name": "workload-2-decision-chain-and-exposure-mapping",
+      "description": "Map decision chains from model outputs to financial exposures and compare baseline vs treatment in terms of completeness and clarity.",
+      "inputs": {
+        "decision_chain_mapping_file": {
+          "file": "data/sample_decision_chains.csv",
+          "description": "Synthetic mapping of model outputs to downstream business processes, decisions, and financial exposure metrics (e.g., P&L lines, risk-weighted assets, operational loss categories)."
+        },
+        "exposure_reference": {
+          "file": "data/sample_financial_exposures.csv",
+          "description": "Reference table for exposure types (e.g., credit_loss, market_loss, conduct_fine) and illustrative magnitudes or scales."
+        }
+      },
+      "baseline_procedure": [
+        "Review manual_inventory_baseline.xlsx and any narrative documentation describing how model outputs are used in business processes.",
+        "Using only those manual resources, compile a table decision_chain_baseline.csv with columns: model_id, business_process, decision_type, exposure_type (free-text), exposure_channel (e.g., credit, market, conduct, operational), and save it in outputs/baseline/decision_chains.csv.",
+        "Create a simple static diagram (optional) or structured description for at least 3 representative decision chains, saved as outputs/baseline/decision_chain_notes.md."
+      ],
+      "treatment_procedure": [
+        "Run the decision-chain linkage script: `python scripts/build_decision_chains.py --inventory outputs/treatment/ai_inventory.csv --decision-map data/sample_decision_chains.csv --exposure-ref data/sample_financial_exposures.csv --output outputs/treatment/decision_chains_enriched.csv`.",
+        "Generate visualizations linking models to exposures: `python scripts/render_decision_chain_graphs.py --decision-chains outputs/treatment/decision_chains_enriched.csv --outdir outputs/treatment/decision_chains_visuals/`."
+      ]
+    },
+    {
+      "name": "workload-3-concentration-and-materiality-heatmaps",
+      "description": "Generate AI concentration and materiality heatmaps from baseline and treatment inventories and compare their fidelity in representing systemic risk concentrations.",
+      "inputs": {
+        "materiality_tiers_definition": {
+          "file": "config/materiality_tiers.yaml",
+          "description": "Configuration describing materiality tiers (e.g., Tier 1\u20133) based on combinations of criticality, controllability, and exposure levels."
+        },
+        "concentration_dimensions": {
+          "file": "config/concentration_dimensions.yaml",
+          "description": "Definition of aggregation dimensions for concentration measurement (e.g., by vendor, by cloud_region, by shared_feature_store, by model_family)."
+        }
+      },
+      "baseline_procedure": [
+        "Using outputs/baseline/ai_inventory.csv, manually assign materiality tiers to AI assets based on qualitative judgment (e.g., reading criticality and controllability notes) and store the result as outputs/baseline/ai_inventory_with_tiers.csv.",
+        "Create a vendor-by-materiality heatmap manually in a spreadsheet, exporting as outputs/baseline/vendor_materiality_heatmap.png.",
+        "Create at least one additional heatmap (e.g., by business_line and exposure_channel) and export as outputs/baseline/bl_exposure_heatmap.png."
+      ],
+      "treatment_procedure": [
+        "Run the materiality-tier assignment script: `python scripts/assign_materiality_tiers.py --inventory outputs/treatment/ai_inventory.csv --tiers-config config/materiality_tiers.yaml --output outputs/treatment/ai_inventory_with_tiers.csv`.",
+        "Run the concentration-analysis script: `python scripts/analyze_concentration_risk.py --inventory outputs/treatment/ai_inventory_with_tiers.csv --dimensions config/concentration_dimensions.yaml --outdir outputs/treatment/concentration/`.",
+        "Generate automated heatmaps (e.g., vendor vs materiality_tier, business_line vs exposure_channel): `python scripts/render_heatmaps.py --aggregates outputs/treatment/concentration/aggregates.csv --outdir outputs/treatment/heatmaps/`."
+      ]
+    }
+  ],
+  "controls": {
+    "data_controls": [
+      "Use the same synthetic source data files (model registry, data pipelines, vendor catalog, decision chain mappings, exposure references) for both baseline and treatment conditions.",
+      "Do not modify the synthetic datasets between baseline and treatment runs; if edits are required (e.g., to fix errors), re-run both baseline and treatment from scratch with the corrected data.",
+      "Ensure any randomization in scripts (e.g., color assignment in visualizations) is seeded with a fixed random seed for reproducibility."
+    ],
+    "process_controls": [
+      "Assign the same individual or team to produce baseline artifacts and to execute the treatment scripts to control for domain understanding, but enforce that baseline is completed before they see treatment outputs.",
+      "Document time spent on each condition (baseline vs treatment) separately, but do not optimize treatment scripts for performance beyond ensuring they run successfully and deterministically.",
+      "Ensure all scripts are run in a clean environment (fresh virtual environment or container) using pinned dependency versions specified in a requirements or lock file."
+    ],
+    "tooling_controls": [
+      "Use only the companion repository tools and standard open-source libraries declared in the repository; avoid proprietary or external discovery tools not part of the experiment.",
+      "Run all commands from the repository root, respecting relative paths as documented, to ensure reproducible file locations."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "ai_asset_coverage_count",
+      "description": "Number of distinct AI assets identified in the inventory.",
+      "unit": "count"
+    },
+    {
+      "name": "ai_asset_coverage_ratio",
+      "description": "Ratio of AI assets identified by a method (baseline or treatment) to the total AI assets present in the synthetic truth dataset.",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "dependency_coverage_count",
+      "description": "Number of unique dependencies (data pipelines, vendors, shared services) linked to AI assets.",
+      "unit": "count"
+    },
+    {
+      "name": "dependency_coverage_ratio",
+      "description": "Ratio of discovered dependencies to the total dependencies present in the synthetic truth dataset.",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "inconsistency_rate",
+      "description": "Proportion of AI assets or dependencies with naming or identifier inconsistencies (e.g., multiple names for the same model) detected by validation scripts.",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "missing_field_rate",
+      "description": "Proportion of required inventory fields (as per schema) that are missing or null.",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "decision_chain_coverage_count",
+      "description": "Number of AI assets for which at least one decision chain to a financial exposure is documented.",
+      "unit": "count"
+    },
+    {
+      "name": "decision_chain_coverage_ratio",
+      "description": "Proportion of AI assets with at least one mapped decision chain to financial exposure.",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "heatmap_dimension_coverage_count",
+      "description": "Number of distinct aggregation dimensions (e.g., business_line, vendor, materiality_tier, exposure_channel) represented in generated heatmaps.",
+      "unit": "count"
+    },
+    {
+      "name": "reproducibility_consistency_rate",
+      "description": "Proportion of AI assets and their key attributes that remain identical across two independent runs of the same method (treatment pipeline).",
+      "unit": "fraction_0_to_1"
+    },
+    {
+      "name": "execution_time_inventory",
+      "description": "Wall-clock time to produce the core AI inventory (excluding manual conceptual review) under each method.",
+      "unit": "seconds"
+    },
+    {
+      "name": "execution_time_visualization",
+      "description": "Wall-clock time to generate heatmaps and dependency graphs under each method.",
+      "unit": "seconds"
+    },
+    {
+      "name": "board_readiness_score",
+      "description": "Subjective rating (e.g., from 1 to 5) by governance-experienced reviewers on how directly the outputs can be used in board materials, based on clarity, completeness, and alignment with chapter 2 templates.",
+      "unit": "ordinal_1_to_5"
+    }
+  ],
+  "success_criteria": {
+    "primary": [
+      "ai_asset_coverage_ratio_treatment >= ai_asset_coverage_ratio_baseline + 0.15 (i.e., at least 15 percentage points higher coverage of AI assets for the treatment).",
+      "dependency_coverage_ratio_treatment >= dependency_coverage_ratio_baseline + 0.20.",
+      "decision_chain_coverage_ratio_treatment >= decision_chain_coverage_ratio_baseline + 0.20."
+    ],
+    "secondary": [
+      "missing_field_rate_treatment <= 0.10 and missing_field_rate_treatment <= missing_field_rate_baseline.",
+      "inconsistency_rate_treatment <= 0.10 and inconsistency_rate_treatment <= inconsistency_rate_baseline.",
+      "reproducibility_consistency_rate_treatment >= 0.95 over at least two independent runs.",
+      "heatmap_dimension_coverage_count_treatment >= heatmap_dimension_coverage_count_baseline + 2.",
+      "median_board_readiness_score_treatment >= 4 and >= median_board_readiness_score_baseline."
+    ],
+    "operational": [
+      "execution_time_inventory_treatment <= execution_time_inventory_baseline for comparable scope once scripts are configured.",
+      "All treatment scripts complete without runtime errors on the provided synthetic dataset using the documented environment."
+    ]
+  },
+  "failure_modes": [
+    {
+      "name": "schema_mismatch",
+      "description": "Inventory schema changes or misalignment between schema and scripts cause fields to be dropped or misinterpreted, reducing coverage or creating false inconsistencies.",
+      "mitigations": [
+        "Pin schema version in config and include a schema_version field in outputs.",
+        "Add a pre-run schema compatibility check that fails fast if expected fields are missing."
+      ]
+    },
+    {
+      "name": "identity_resolution_errors",
+      "description": "The pipeline merges or splits AI assets incorrectly due to imperfect identity resolution logic (e.g., conflating similar model names across business lines).",
+      "mitigations": [
+        "Log all entity merges to a resolution_audit file for manual review.",
+        "Allow configuration of strict vs relaxed matching modes and re-run in strict mode for evaluation."
+      ]
+    },
+    {
+      "name": "overfitting_to_synthetic_data",
+      "description": "Scripts are tailored to the specific structure of the synthetic dataset and may not generalize to real institutional environments.",
+      "mitigations": [
+        "Design synthetic data to mimic multiple patterns (e.g., multiple lines of business, several vendor types, different deployment environments).",
+        "Keep mapping logic declarative via config files rather than hardcoding dataset-specific assumptions."
+      ]
+    },
+    {
+      "name": "visualization_overload_or_clutter",
+      "description": "Automated dependency graphs and heatmaps become too dense or complex to be board-usable.",
+      "mitigations": [
+        "Provide configuration options to filter by materiality tier or business line for board-level outputs.",
+        "Generate both detailed technical maps and simplified executive summaries."
+      ]
+    },
+    {
+      "name": "subjective_bias_in_board_readiness_scoring",
+      "description": "Reviewer ratings for board_readiness_score may be inconsistent or biased.",
+      "mitigations": [
+        "Use at least two independent reviewers with board/governance experience.",
+        "Provide a standardized rubric describing what scores 1\u20135 represent, and record reviewer IDs for traceability."
+      ]
+    }
+  ],
+  "required_environment": {
+    "runtime": "Python 3.10+",
+    "os": [
+      "Linux (Ubuntu 22.04 recommended)",
+      "macOS 13+",
+      "Windows 11 (via WSL2 recommended)"
+    ],
+    "dependencies": {
+      "python_packages": [
+        "pandas==2.2.0",
+        "pyyaml==6.0.1",
+        "networkx==3.2.1",
+        "matplotlib==3.8.2",
+        "seaborn==0.13.2",
+        "numpy==1.26.3",
+        "pydantic==2.6.0"
+      ],
+      "system_tools": [
+        "git",
+        "make (optional, for scripted workflows)"
+      ]
+    },
+    "repository_layout_assumptions": {
+      "root": "boardroom-blind-spots/",
+      "directories": [
+        "data/",
+        "schemas/",
+        "config/",
+        "scripts/",
+        "outputs/"
+      ]
+    },
+    "resource_requirements": {
+      "cpu": "Standard laptop or VM (4 cores, 8GB RAM) is sufficient for synthetic datasets.",
+      "gpu": "Not required.",
+      "storage": "At least 1GB free disk space for synthetic data and generated outputs."
+    }
+  },
+  "run_instructions": [
+    "Clone the repository: `git clone https://github.com/bookauthority/boardroom-blind-spots.git`.",
+    "Change directory: `cd boardroom-blind-spots`.",
+    "Create and activate a virtual environment (example using venv):",
+    "  `python3 -m venv .venv`",
+    "  `source .venv/bin/activate`  (on Windows: `.venv\\Scripts\\activate`)",
+    "Install dependencies: `pip install -r requirements.txt` (ensure the file pins versions compatible with required_environment).",
+    "Ensure the following directories exist: `mkdir -p outputs/baseline outputs/treatment`.",
+    "Populate synthetic data and configuration files (if not already present) under data/, schemas/, and config/ according to the paths used in this specification.",
+    "Run Workload 1 (treatment):",
+    "  `python scripts/build_ai_inventory.py --config config/inventory_pipeline_config.yaml --output outputs/treatment/ai_inventory.csv`",
+    "  `python scripts/build_dependency_graph.py --inventory outputs/treatment/ai_inventory.csv --output outputs/treatment/dependency_graph.gml`",
+    "  `python scripts/render_inventory_tables.py --inventory outputs/treatment/ai_inventory.csv --outdir outputs/treatment/tables/`",
+    "  `python scripts/render_risk_visuals.py --inventory outputs/treatment/ai_inventory.csv --graph outputs/treatment/dependency_graph.gml --outdir outputs/treatment/visuals/`",
+    "  `python scripts/validate_inventory.py --inventory outputs/treatment/ai_inventory.csv --schema schemas/ai_inventory_schema.yaml --report outputs/treatment/validation_report.json`.",
+    "Run Workload 2 (treatment):",
+    "  `python scripts/build_decision_chains.py --inventory outputs/treatment/ai_inventory.csv --decision-map data/sample_decision_chains.csv --exposure-ref data/sample_financial_exposures.csv --output outputs/treatment/decision_chains_enriched.csv`",
+    "  `python scripts/render_decision_chain_graphs.py --decision-chains outputs/treatment/decision_chains_enriched.csv --outdir outputs/treatment/decision_chains_visuals/`.",
+    "Run Workload 3 (treatment):",
+    "  `python scripts/assign_materiality_tiers.py --inventory outputs/treatment/ai_inventory.csv --tiers-config config/materiality_tiers.yaml --output outputs/treatment/ai_inventory_with_tiers.csv`",
+    "  `python scripts/analyze_concentration_risk.py --inventory outputs/treatment/ai_inventory_with_tiers.csv --dimensions config/concentration_dimensions.yaml --outdir outputs/treatment/concentration/`",
+    "  `python scripts/render_heatmaps.py --aggregates outputs/treatment/concentration/aggregates.csv --outdir outputs/treatment/heatmaps/`.",
+    "Independently perform baseline steps as described under workloads, using spreadsheet tooling and manual compilation, exporting required baseline artifacts into outputs/baseline/.",
+    "To assess reproducibility, re-run the treatment scripts from a clean outputs/treatment_rerun/ directory and compare ai_inventory.csv and derived outputs to the original treatment outputs.",
+    "Collect metrics by running an evaluation script (to be implemented):",
+    "  `python scripts/evaluate_attack_surface_mapping.py --baseline-dir outputs/baseline --treatment-dir outputs/treatment --truth-dir data/truth --out metrics/attack_surface_experiment_results.json`.",
+    "Have at least two governance-experienced reviewers score board_readiness_score for baseline and treatment artifacts using a provided rubric, and append their anonymized ratings to the evidence file."
+  ],
+  "evidence_schema": {
+    "type": "object",
+    "required": [
+      "experiment_id",
+      "timestamp_utc",
+      "data_version",
+      "code_version",
+      "environment",
+      "metrics",
+      "artifacts",
+      "reviewer_assessments",
+      "notes"
+    ],
+    "properties": {
+      "experiment_id": {
+        "type": "string",
+        "description": "Identifier linking evidence to this specification, e.g., 'ch02-ai-attack-surface-mapping-v1'."
+      },
+      "timestamp_utc": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp when the evaluation script was executed."
+      },
+      "data_version": {
+        "type": "string",
+        "description": "Git commit hash or semantic version of the synthetic data used."
+      },
+      "code_version": {
+        "type": "string",
+        "description": "Git commit hash or tag of the repository at the time of experiment execution."
+      },
+      "environment": {
+        "type": "object",
+        "description": "Description of the execution environment.",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "python_version": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "hardware": {
+            "type": "object",
+            "properties": {
+              "cpu": {
+                "type": "string"
+              },
+              "ram_gb": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "os",
+          "python_version"
+        ]
+      },
+      "metrics": {
+        "type": "object",
+        "description": "Measured metrics for baseline and treatment conditions.",
+        "properties": {
+          "baseline": {
+            "type": "object",
+            "properties": {
+              "ai_asset_coverage_count": {
+                "type": "number"
+              },
+              "ai_asset_coverage_ratio": {
+                "type": "number"
+              },
+              "dependency_coverage_count": {
+                "type": "number"
+              },
+              "dependency_coverage_ratio": {
+                "type": "number"
+              },
+              "inconsistency_rate": {
+                "type": "number"
+              },
+              "missing_field_rate": {
+                "type": "number"
+              },
+              "decision_chain_coverage_count": {
+                "type": "number"
+              },
+              "decision_chain_coverage_ratio": {
+                "type": "number"
+              },
+              "heatmap_dimension_coverage_count": {
+                "type": "number"
+              },
+              "reproducibility_consistency_rate": {
+                "type": "number"
+              },
+              "execution_time_inventory": {
+                "type": "number"
+              },
+              "execution_time_visualization": {
+                "type": "number"
+              },
+              "board_readiness_score": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "description": "List of reviewer scores (1\u20135) for baseline artifacts."
+              }
+            },
+            "additionalProperties": false
+          },
+          "treatment": {
+            "type": "object",
+            "properties": {
+              "ai_asset_coverage_count": {
+                "type": "number"
+              },
+              "ai_asset_coverage_ratio": {
+                "type": "number"
+              },
+              "dependency_coverage_count": {
+                "type": "number"
+              },
+              "dependency_coverage_ratio": {
+                "type": "number"
+              },
+              "inconsistency_rate": {
+                "type": "number"
+              },
+              "missing_field_rate": {
+                "type": "number"
+              },
+              "decision_chain_coverage_count": {
+                "type": "number"
+              },
+              "decision_chain_coverage_ratio": {
+                "type": "number"
+              },
+              "heatmap_dimension_coverage_count": {
+                "type": "number"
+              },
+              "reproducibility_consistency_rate": {
+                "type": "number"
+              },
+              "execution_time_inventory": {
+                "type": "number"
+              },
+              "execution_time_visualization": {
+                "type": "number"
+              },
+              "board_readiness_score": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "description": "List of reviewer scores (1\u20135) for treatment artifacts."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "baseline",
+          "treatment"
+        ]
+      },
+      "artifacts": {
+        "type": "object",
+        "description": "File paths or URIs to key outputs generated by the experiment.",
+        "properties": {
+          "baseline_inventory": {
+            "type": "string"
+          },
+          "treatment_inventory": {
+            "type": "string"
+          },
+          "baseline_heatmaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "treatment_heatmaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "treatment_dependency_graph": {
+            "type": "string"
+          },
+          "treatment_decision_chain_visuals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validation_report": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "reviewer_assessments": {
+        "type": "array",
+        "description": "Anonymized qualitative feedback from reviewers on board-readiness and usability.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "reviewer_id": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string",
+              "description": "e.g., 'board_member', 'CRO', 'governance_officer'."
+            },
+            "baseline_score": {
+              "type": "number"
+            },
+            "treatment_score": {
+              "type": "number"
+            },
+            "comments": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reviewer_id",
+            "baseline_score",
+            "treatment_score"
+          ]
+        }
+      },
+      "notes": {
+        "type": "string",
+        "description": "Free-text notes capturing any deviations from the protocol, issues observed, or contextual factors that might affect interpretation."
+      }
+    }
+  }
+}

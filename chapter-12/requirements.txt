@@ -1,0 +1,2 @@
+# No runtime third-party dependencies are allowed for this experiment.
+# The entire project uses only the Python 3.11+ standard library.

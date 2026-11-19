@@ -1,0 +1,637 @@
+{
+  "experiment_id": "exp-09-operational-resilience-ai-ewd-response",
+  "hypothesis": "An AI-specific operational resilience stack that combines meta-monitoring, calibrated early-warning thresholds, and codified AI-incident runbooks will (a) detect model degradation and collapse materially earlier and (b) reduce incident impact and resolution time versus a generic application monitoring setup, when evaluated on the same AI-dependent financial process under controlled failure scenarios.",
+  "baseline": {
+    "description": "Generic application monitoring for an AI-dependent financial process without AI-specific meta-monitoring or AI-incident runbooks.",
+    "characteristics": [
+      "Standard infrastructure monitoring: CPU, memory, latency, error rates (e.g., HTTP 5xx), message queue lag.",
+      "Basic functional checks: service up/down, endpoint health checks returning HTTP 200.",
+      "No direct monitoring of model inputs, outputs, drift, uncertainty, or internal model signals.",
+      "No explicit AI early-warning indicators or tuned thresholds beyond generic service SLIs/SLOs.",
+      "Incident response follows generic IT incident process (e.g., severity levels, on-call engineer), with no AI-specific triage steps or decision criteria (e.g., when to roll back a model).",
+      "Logging is application-oriented (requests, responses, errors) without structured capture of AI-specific context (e.g., feature distributions, model version, decision rationale)."
+    ],
+    "implementation_notes": [
+      "Use a simple web service that wraps a pre-trained model (e.g., a binary classifier for credit approval) with REST API.",
+      "Attach standard monitoring (Prometheus, OpenTelemetry, or equivalent) to capture uptime, latency, and error counts only.",
+      "Configure a single generic alert: e.g., 'alert if 5xx_error_rate_5m > 2% of requests for 10 minutes'.",
+      "Use a minimal runbook: 'If alert fires, investigate logs, restart service, escalate to on-call data scientist if needed' with no AI-specific steps."
+    ]
+  },
+  "treatment": {
+    "description": "Enhanced AI-aware operational resilience setup that adds model-level meta-monitoring, AI-specific early warning indicators, and a structured AI-incident runbook on top of the same baseline infrastructure.",
+    "components": [
+      "AI Early Warning Metrics (Section 9.2):",
+      "  - Input data monitoring: population drift (e.g., PSI or JS divergence) versus recent baseline; missing/invalid feature rate.",
+      "  - Output monitoring: approval/rejection rate distribution, score distribution drift, calibration shifts.",
+      "  - Outcome proxy monitoring: short-term realized default/charge-off proxies using lagged labels in synthetic workloads.",
+      "Model Meta-Monitoring (Section 9.3):",
+      "  - Prediction uncertainty monitoring (e.g., predicted probability near 0.5 band, entropy-based score).",
+      "  - Stability monitoring across models: divergence between champion and shadow model outputs on a sampled subset.",
+      "  - Internal consistency checks: monotonicity checks on selected features, simple rule-based backstops.",
+      "Alerting and Thresholds (Sections 9.2, 9.3):",
+      "  - Multi-tier thresholds (info, warning, critical) defined on AI-specific metrics, e.g.:",
+      "    * PSI(input_feature_x) > 0.2 for 30 minutes => warning; > 0.3 => critical.",
+      "    * Drop in approval rate > 30% relative to 7-day rolling average => critical.",
+      "    * Champion-shadow disagreement rate > 20% for 15 minutes => warning.",
+      "  - Alert aggregation rules to avoid alert storms and prioritize business-critical indicators.",
+      "AI Incident Runbook (Section 9.4):",
+      "  - Triage steps: identify whether issue is infra, data pipeline, or model-behavior driven using defined diagnostic queries.",
+      "  - Decision tree for containment: when to throttle traffic, revert to previous model, switch to fallback rule-based logic, or invoke manual review mode.",
+      "  - Pre-defined communication templates for operations, risk management, and compliance teams.",
+      "Business Continuity Modes (Section 9.5):",
+      "  - Configurable fallback strategies:",
+      "    * Fallback to last-known-good model version.",
+      "    * Fallback to conservative rule-based decisioning.",
+      "    * Fallback to manual review for a capped volume of high-value transactions.",
+      "Integration with Incident Management (Sections 9.6, 9.7):",
+      "  - Auto-tagging of incidents as 'AI-model' vs 'infra' in an incident tracker (e.g., Jira, ServiceNow-like stub).",
+      "  - Automatic attachment of model monitoring snapshots and key metrics to incident records.",
+      "Readiness Testing Harness (Section 9.8):",
+      "  - Scripts to inject controlled failures (data drift, label shift, model parameter corruption) and to replay historical-like stress scenarios.",
+      "  - Logging of detection time, triggered alerts, actions taken (simulated), and time to recovery."
+    ],
+    "implementation_notes": [
+      "Reuse the same service and model as the baseline; instrument additional AI metrics in a sidecar collector process.",
+      "Implement early-warning calculations (PSI, approval-rate deltas, disagreement rates) in a streaming or micro-batch fashion (e.g., every 1\u20135 minutes).",
+      "Define alerting rules in the same monitoring stack as baseline (e.g., Prometheus alertmanager rules, or a Python-based rules engine).",
+      "Formalize the AI incident runbook as structured YAML/JSON plus markdown, and reference it in code for automated actions (e.g., simulated switch to fallback)."
+    ]
+  },
+  "workloads": [
+    {
+      "name": "WL1_normal_operations",
+      "description": "Simulated normal operations for an AI-based credit approval model under stable conditions.",
+      "steps": [
+        "Generate or load a synthetic but realistic tabular dataset representing credit applications with features such as income, utilization, age, delinquency indicators.",
+        "Train a baseline binary classifier (e.g., gradient boosting or logistic regression) to produce approval probabilities; fix its weights before experiments.",
+        "Deploy the model as an inference service accessible via a simple API or batch function.",
+        "Stream requests at a steady rate (e.g., 20\u2013100 requests per second) for a sustained period (e.g., 60 minutes).",
+        "Ensure data distribution matches the model's training distribution, with stable approval and default rates.",
+        "Record all monitoring metrics under both baseline and treatment setups; no induced faults.",
+        "Use WL1 primarily for calibration of thresholds and as a control to measure false positive alert rates."
+      ],
+      "purpose": "Validate that the enhanced AI monitoring does not generate excessive false positives under normal, stable conditions and that incident runbooks are not inadvertently triggered."
+    },
+    {
+      "name": "WL2_gradual_data_drift",
+      "description": "Gradual but material drift in input features and target distribution for an AI credit model over multiple hours, mimicking a slow macroeconomic regime change.",
+      "steps": [
+        "Start with WL1-like traffic for an initial warm-up period (e.g., 20 minutes).",
+        "Over the next 60\u2013120 minutes, slowly alter key input feature distributions, e.g.:",
+        "  - Increase average utilization and debt-to-income ratio.",
+        "  - Change the geographic or segment mix of applications.",
+        "  - Introduce gradual changes in correlation between features.",
+        "Simultaneously, alter labels (for lagged outcome simulation) to reflect a worsening credit environment (higher default rates), with labels becoming observable after a defined lag (e.g., 15 minutes in simulated time).",
+        "Keep infrastructure health stable (no added latency, no 5xx errors) so failures appear only at the model/decision layer.",
+        "Run baseline and treatment configurations separately but with identical random seeds and drift schedule.",
+        "Log when each configuration first exhibits materially degraded performance (e.g., captured via a hidden 'oracle' metric like true AUC on the drifting distribution), and when/if alerts fire.",
+        "For the treatment, simulate runbook execution choices when critical thresholds are breached (e.g., switching to a more conservative model)."
+      ],
+      "purpose": "Test whether AI-specific early-warning metrics detect degradation significantly earlier than generic infra metrics, and whether codified runbooks enable faster and more consistent containment actions."
+    },
+    {
+      "name": "WL3_abrupt_model_corruption",
+      "description": "Sudden, catastrophic degradation of the model due to configuration error or corrupted weights, with infrastructure otherwise healthy.",
+      "steps": [
+        "Run WL1 for an initial period (e.g., 10\u201315 minutes) to establish baseline behavior.",
+        "At a specific time T0, introduce a model-level fault such as:",
+        "  - Swapping the model with a poorly trained or random-weight model.",
+        "  - Shuffling model coefficients.",
+        "  - Applying an incorrect pre-processing pipeline (e.g., permuting key features).",
+        "Keep API latency and uptime within normal limits to avoid obvious infra alarms.",
+        "Continue sending traffic at the same rate for at least 30\u201345 minutes after T0.",
+        "Compute an 'oracle' quality metric (e.g., AUC or error rate) offline using true labels to quantify underlying severity.",
+        "For baseline and treatment, measure time from T0 to first fired alert; in treatment, track which AI-specific metrics triggered alerts (e.g., approval rate collapse, extreme score distributions, champion-shadow disagreement).",
+        "For treatment, simulate application of the runbook: e.g., immediate rollback to previous model version or switch to manual review for high-risk segments.",
+        "Capture the volume and value of misclassified decisions between T0 and containment in both conditions (e.g., funds misallocated, approvals wrongly given/denied) using synthetic financial impact rules."
+      ],
+      "purpose": "Evaluate the speed and quality of detection and response to abrupt model failures, where generic infra metrics provide little signal but AI-aware meta-monitoring should be highly sensitive."
+    },
+    {
+      "name": "WL4_upstream_data_vendor_failure",
+      "description": "Degradation and partial corruption of upstream data from an external vendor (e.g., bureau data), leading to flawed model inputs even though the model and hosting infra remain technically sound.",
+      "steps": [
+        "Simulate normal traffic for an initial period with all features correctly populated, including a 'vendor_feature_block'.",
+        "At time T1, inject issues specifically in vendor-related fields:",
+        "  - Spike in missing values (e.g., 50\u201390% becoming null).",
+        "  - Static or frozen values (no variability over time).",
+        "  - Abnormal categorical codes not seen in training.",
+        "Ensure generic infra metrics remain normal (no HTTP errors or abnormal latencies).",
+        "Allow the system to continue processing for 45\u201360 minutes under corrupted input conditions.",
+        "Under the treatment system, configure input quality metrics and vendor-specific data quality checks (e.g., vendor_feature_missing_rate, vendor_feature_entropy).",
+        "Run the scenario under baseline and treatment with identical seeds and failure injections.",
+        "Log detection times, alert context (which metrics fired), and simulated response actions (e.g., switching to backup vendor data, invoking manual review, or applying conservative overrides where vendor data is missing)."
+      ],
+      "purpose": "Test whether AI-specific input quality and external dependency monitoring allow faster detection and more targeted response to third-party data failures compared to generic monitoring."
+    }
+  ],
+  "controls": {
+    "execution_controls": [
+      "Run baseline and treatment experiments on the same hardware and software stack, differing only in monitoring/alerting and incident automation components.",
+      "Use fixed random seeds for data generation, label assignment, and failure injection to ensure identical workloads across baseline and treatment.",
+      "Ensure consistent model training (same hyperparameters and pre-processing) prior to divergence at runtime.",
+      "Disable any self-healing cloud features that would mask failures (e.g., automatic restarts based solely on infra metrics) or apply them identically in both baseline and treatment.",
+      "Ensure that no human-in-the-loop manual interventions are made during runtime unless explicitly scripted and simulated as part of the AI runbook in the treatment condition.",
+      "Keep logging verbosity and retention the same for baseline and treatment to avoid bias in subsequent analysis."
+    ],
+    "measurement_controls": [
+      "Synchronize clocks and timestamps across monitoring systems to allow precise calculation of detection and containment intervals.",
+      "Log all alerts with a standardized schema including metric name, threshold, severity, timestamp, and associated workload identifier.",
+      "Record ground-truth 'oracle' model performance metrics (e.g., AUC, error rate) and synthetic financial impact metrics using the same evaluation pipeline for baseline and treatment.",
+      "Record which fallback or continuity actions were triggered (real or simulated) with timestamps to reconstruct the full incident timeline.",
+      "Use blinded analysis scripts that compute metrics based on logs without knowing whether they originated from baseline or treatment runs until after metrics are calculated."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "time_to_detection",
+      "unit": "seconds",
+      "definition": "Elapsed wall-clock time between the known failure injection timestamp (T0/T1) and the first alert that correctly signals AI-related degradation (model or input-level) for a given incident scenario."
+    },
+    {
+      "name": "time_to_containment_decision",
+      "unit": "seconds",
+      "definition": "Elapsed time between failure injection and the point at which a containment action decision is logged (e.g., simulated rollback, switch to fallback, or traffic throttling) according to the runbook."
+    },
+    {
+      "name": "time_to_stable_recovery",
+      "unit": "seconds",
+      "definition": "Elapsed time between failure injection and restoration of metrics to within a defined band of pre-incident baselines (e.g., approval rates, error rates, drift measures), sustained for a minimum stabilization window (e.g., 15 minutes)."
+    },
+    {
+      "name": "false_positive_alert_rate",
+      "unit": "alerts_per_hour",
+      "definition": "Number of AI-related alerts triggered during WL1_normal_operations per hour that are not associated with any injected failure conditions."
+    },
+    {
+      "name": "missed_detection_rate",
+      "unit": "fraction",
+      "definition": "Fraction of failure injections where no AI-related alert fires within a maximum acceptable detection window (e.g., 30 minutes for gradual drift, 5 minutes for abrupt corruption)."
+    },
+    {
+      "name": "cumulative_misclassified_decisions",
+      "unit": "count",
+      "definition": "Number of decisions (e.g., loan approvals/denials) that differ from those of a 'gold standard' reference model or policy between failure injection and containment, indicating the volume of impacted decisions."
+    },
+    {
+      "name": "estimated_incident_financial_impact",
+      "unit": "currency_units",
+      "definition": "Aggregate estimated financial loss (e.g., expected credit loss from mispriced approvals, opportunity cost of overly conservative denials) computed using synthetic but consistent loss rules across conditions."
+    },
+    {
+      "name": "operator_runbook_adherence",
+      "unit": "fraction",
+      "definition": "Proportion of prescribed runbook steps that are followed in correct order and within target time bounds during incident simulations, based on logs or scenario scripts; for baseline, this may be near-zero where runbooks are generic or absent."
+    },
+    {
+      "name": "alert_precision",
+      "unit": "fraction",
+      "definition": "Among all AI-related alerts fired across workloads, the fraction that correspond to times with actual, injected failures or objectively confirmed AI degradations (defined by 'oracle' metrics crossing severity thresholds)."
+    },
+    {
+      "name": "alert_lead_time_vs_oracle",
+      "unit": "seconds",
+      "definition": "Difference between the time when an 'oracle' quality metric crosses a severe degradation threshold and the time when the first AI alert fires (negative values indicate earlier alerts than oracle crossing)."
+    }
+  ],
+  "success_criteria": [
+    "For gradual drift (WL2), median time_to_detection under the treatment configuration is at least 50% lower than under the baseline configuration, with no more than a 2x increase in false_positive_alert_rate during WL1_normal_operations.",
+    "For abrupt model corruption (WL3), 95th percentile time_to_detection under treatment is less than or equal to 120 seconds, while baseline either fails to detect within 10 minutes (missed_detection) or detects significantly later.",
+    "For upstream data vendor failure (WL4), treatment demonstrates a missed_detection_rate at least 50% lower than baseline and a statistically significant reduction in estimated_incident_financial_impact (e.g., p < 0.05 under a suitable non-parametric test using repeated runs).",
+    "Across WL2\u2013WL4, treatment achieves a cumulative_misclassified_decisions that is at least 30% lower than baseline for the same workloads and injected failures.",
+    "Under WL1_normal_operations, alert_precision under treatment is at least 0.8 and false_positive_alert_rate remains below a pre-defined operational tolerance (e.g., <= 2 AI-specific alerts per 8-hour equivalent).",
+    "Operator_runbook_adherence in treatment scenario drills exceeds 0.9, demonstrating that the structured AI incident runbooks are actionable and consistently followed within the simulation framework."
+  ],
+  "failure_modes": [
+    {
+      "name": "overly_sensitive_thresholds",
+      "description": "Early-warning thresholds set too tightly generate frequent alerts during WL1_normal_operations, leading to high false_positive_alert_rate and undermining practical usability.",
+      "mitigations": [
+        "Use WL1 and early WL2 phases to empirically calibrate thresholds to target alert_precision >= 0.8.",
+        "Apply hysteresis and rolling windows to smooth metrics and avoid reacting to transient noise.",
+        "Conduct sensitivity analysis by sweeping threshold parameters and re-running WL1 to find balanced settings."
+      ]
+    },
+    {
+      "name": "silent_failure_in_monitoring_pipeline",
+      "description": "Monitoring or metric computation fails (e.g., sidecar crash, feature logging error), resulting in missing or stale indicators and giving a false sense of security.",
+      "mitigations": [
+        "Implement health checks and heartbeat metrics for the monitoring components themselves (meta-monitoring).",
+        "Alert on absence of expected monitoring data streams (e.g., no metric updates for > N minutes).",
+        "Log monitoring pipeline errors separately and include them in experiment evaluation to detect bias."
+      ]
+    },
+    {
+      "name": "confounding_infra_issues",
+      "description": "Unintended infrastructure issues (e.g., network latency spikes) occur during AI failure injections, causing baseline monitoring to detect incidents based on infra symptoms and obscuring AI detection performance differences.",
+      "mitigations": [
+        "Isolate the experimental environment with stable, controlled resources.",
+        "Monitor and log infra metrics explicitly and tag runs where infra anomalies exceed predefined thresholds; exclude or separately analyze these runs.",
+        "Optionally replay workloads purely as offline logs through monitoring logic to decouple infra behavior from AI behavior."
+      ]
+    },
+    {
+      "name": "label_leakage_in_oracle_metrics",
+      "description": "Oracle metrics or synthetic financial impact calculations inadvertently use future information or leak labels in a way that would not be available in real time, invalidating lead-time comparisons.",
+      "mitigations": [
+        "Strictly enforce label lags in oracle metric computation to mirror realistic feedback delays.",
+        "Separate online monitoring metrics (which must not see future labels) from offline evaluation metrics in the codebase.",
+        "Review metric computation pipelines for potential leakage during code review and unit testing."
+      ]
+    },
+    {
+      "name": "unrealistic_synthetic_data_or_scenarios",
+      "description": "Synthetic workloads and failure injections do not resemble realistic financial services patterns, limiting external validity of conclusions.",
+      "mitigations": [
+        "Base data generation parameters on published benchmarks, anonymized institution-level aggregates, or domain SME input.",
+        "Vary multiple scenario parameters (drift magnitude, vendor outage duration, traffic levels) and report sensitivity of results.",
+        "Document scenario assumptions clearly to aid interpretation and adaptation to real-world environments."
+      ]
+    },
+    {
+      "name": "runbook_complexity_and_non-use",
+      "description": "The AI incident runbooks become too complex to be followed even in simulation, leading to low operator_runbook_adherence despite technical monitoring improvements.",
+      "mitigations": [
+        "Keep runbooks compact and decision-tree based, with a limited number of branches for common incident types.",
+        "Dry-run runbooks with technical teams and simplify steps that are frequently skipped or misunderstood.",
+        "Log not only which steps are executed but also decision justifications to inform iterative refinement."
+      ]
+    }
+  ],
+  "required_environment": {
+    "hardware": [
+      "Commodity server or cloud instance with at least 4 CPU cores, 16 GB RAM, and 50 GB of available storage for logs and data.",
+      "Optional GPU is not required; models can be small tabular classifiers."
+    ],
+    "software_stack": [
+      "Python 3.9+ or equivalent environment.",
+      "Data/ML libraries: pandas, numpy, scikit-learn (or similar), scipy.",
+      "Monitoring and metrics stack: Prometheus + Alertmanager (or an equivalent metrics store and alerting engine), or a Python-native monitoring library with time-series persistence.",
+      "Logging: structured logging via Python logging or similar, with JSON output.",
+      "Containerization (optional but recommended): Docker to package model service, monitoring sidecar, and workload generator.",
+      "Orchestration (optional): docker-compose or Kubernetes for orchestrating baseline vs treatment deployments.",
+      "Version control: git, with repository structure aligned to https://github.com/bookauthority/boardroom-blind-spots.",
+      "Configuration management: YAML/JSON-based configuration files to define thresholds, alert rules, and runbook mappings."
+    ],
+    "data": [
+      "Synthetic tabular dataset representing credit applications, generated via provided scripts or loaded from an open dataset compatible with financial-like modeling (e.g., credit-scoring-style data, appropriately anonymized).",
+      "Definition of synthetic label generation rules and financial impact mapping (e.g., expected loss models) that are consistent across baseline and treatment.",
+      "Configuration files for each workload scenario detailing drift schedules, failure injection times, and vendor data failure patterns."
+    ],
+    "security_and_compliance": [
+      "Use only synthetic or fully anonymized data with no personal identifiable information.",
+      "Run experiments in a non-production environment isolated from live customer systems.",
+      "Review and align the experimental setup with internal model risk and operational resilience policies before using institution-specific data."
+    ]
+  },
+  "run_instructions": [
+    "1. Clone Repository and Set Up Environment:",
+    "   - Clone the repository: git clone https://github.com/bookauthority/boardroom-blind-spots.git",
+    "   - Navigate to the chapter 9 experiment directory (e.g., experiments/ch09_operational_resilience/).",
+    "   - Create and activate a Python virtual environment.",
+    "   - Install dependencies: pip install -r requirements.txt",
+    "",
+    "2. Generate or Load Synthetic Data:",
+    "   - Run the data generation script (e.g., python scripts/generate_synthetic_credit_data.py) to create a base training and evaluation dataset.",
+    "   - Optionally adjust configuration (configs/data_generation.yaml) to change portfolio size, feature distributions, and base default rates.",
+    "",
+    "3. Train and Freeze the Baseline Model:",
+    "   - Execute the training script (e.g., python scripts/train_baseline_model.py --config configs/model/baseline.yaml).",
+    "   - Confirm that the trained model artifact is saved to the designated models/ directory with a version identifier.",
+    "",
+    "4. Deploy Baseline Service and Monitoring:",
+    "   - Start the model inference service in baseline mode (e.g., docker-compose -f docker-compose-baseline.yaml up or python services/model_service.py --mode baseline).",
+    "   - Start the baseline monitoring stack (e.g., Prometheus, Alertmanager, and any exporters defined in monitoring/baseline/).",
+    "   - Verify that health endpoints and baseline metrics (latency, error rate) are being scraped and stored.",
+    "",
+    "5. Configure and Run Workloads Under Baseline Setup:",
+    "   - For each workload (WL1\u2013WL4), review and, if needed, edit scenario configuration files under configs/workloads/ (e.g., wl1_normal.yaml, wl2_drift.yaml).",
+    "   - Run the workload generator for WL1 (e.g., python workloads/run_workload.py --config configs/workloads/wl1_normal.yaml --mode baseline).",
+    "   - Repeat for WL2, WL3, and WL4, ensuring that each run produces logs and metrics tagged with workload_id and mode=baseline.",
+    "",
+    "6. Deploy Treatment Service with AI Meta-Monitoring:",
+    "   - Start the enhanced model inference service with monitoring sidecar (e.g., docker-compose -f docker-compose-treatment.yaml up or python services/model_service.py --mode treatment).",
+    "   - Start the AI-specific metrics collector (e.g., python monitoring/ai_metrics_collector.py --config configs/monitoring/ai_metrics.yaml).",
+    "   - Start the alerting/rules engine with treatment-specific rules (e.g., Prometheus Alertmanager using rules in monitoring/treatment/rules.yml or a Python rules engine script).",
+    "",
+    "7. Configure AI-Specific Thresholds and Runbooks:",
+    "   - Edit configs/monitoring/thresholds.yaml to set PSI, approval-rate, disagreement-rate, and other thresholds, using WL1 calibration results if available.",
+    "   - Define AI incident runbooks in configs/runbooks/ (e.g., standardized YAML with steps and triggers).",
+    "",
+    "8. Run Workloads Under Treatment Setup:",
+    "   - Repeat Step 5 for WL1\u2013WL4, but run the workload generator with --mode treatment and ensure identical random seeds and scenario config apart from mode.",
+    "   - Confirm that AI-specific metrics are logged and that alerts are being generated according to the configured rules.",
+    "   - For WL2\u2013WL4, ensure that simulated runbook actions (e.g., switch_to_fallback) are logged with timestamps when triggered by alerts.",
+    "",
+    "9. Collect and Consolidate Evidence:",
+    "   - Use provided scripts (e.g., python analysis/aggregate_logs.py) to merge logs from baseline and treatment runs into standardized evidence JSON/CSV files adhering to the evidence_schema.",
+    "   - Ensure each record includes experiment_id, workload_id, mode (baseline/treatment), timestamps, alert details, and oracle metrics.",
+    "",
+    "10. Analyze Metrics and Compare Baseline vs Treatment:",
+    "   - Run analysis scripts (e.g., python analysis/compute_metrics.py --config configs/analysis/metrics.yaml) to compute time_to_detection, cumulative_misclassified_decisions, estimated_incident_financial_impact, and other defined metrics for each run.",
+    "   - Use statistical comparison scripts (e.g., python analysis/compare_conditions.py) to summarize differences between baseline and treatment across repeated runs.",
+    "",
+    "11. Document Findings and Map to Book Content:",
+    "   - Export summary tables and plots to reports/ (e.g., detection_time_comparison.png, financial_impact_boxplots.png).",
+    "   - Link specific findings back to Chapter 9 sections (e.g., how early-warning metrics in 9.2 reduced time_to_detection in WL2) for inclusion in board-level materials.",
+    "",
+    "12. Optional: Extend Scenarios for Institution-Specific Context:",
+    "   - Adapt workload configurations and loss models to reflect institution-specific AI use cases (e.g., fraud detection, trading signals) while maintaining the same experimental structure.",
+    "   - Re-run experiments and analyses to calibrate AI operational resilience controls to the institution's own environment."
+  ],
+  "evidence_schema": {
+    "description": "Standardized schema for logging and analyzing experiment runs, alerts, and outcomes for both baseline and treatment configurations.",
+    "top_level_fields": [
+      {
+        "name": "experiment_id",
+        "type": "string",
+        "example": "exp-09-operational-resilience-ai-ewd-response",
+        "description": "Identifier of the experiment specification associated with this evidence record."
+      },
+      {
+        "name": "run_id",
+        "type": "string",
+        "example": "run-wl2-2026-11-18-01",
+        "description": "Unique identifier for a single execution of a workload under a given mode."
+      },
+      {
+        "name": "workload_id",
+        "type": "string",
+        "example": "WL2_gradual_data_drift",
+        "description": "Identifier of the workload scenario (WL1\u2013WL4)."
+      },
+      {
+        "name": "mode",
+        "type": "string",
+        "allowed_values": [
+          "baseline",
+          "treatment"
+        ],
+        "description": "Indicates whether the run used the generic monitoring baseline or AI-enhanced treatment setup."
+      },
+      {
+        "name": "config_version",
+        "type": "string",
+        "example": "v1.0.0",
+        "description": "Version identifier of the configuration bundle (monitoring thresholds, runbooks, workload parameters) used for this run."
+      },
+      {
+        "name": "start_time",
+        "type": "string",
+        "format": "ISO-8601 datetime",
+        "description": "Run start timestamp."
+      },
+      {
+        "name": "end_time",
+        "type": "string",
+        "format": "ISO-8601 datetime",
+        "description": "Run end timestamp."
+      },
+      {
+        "name": "failure_injections",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "injection_id",
+              "type": "string",
+              "example": "inj-wl3-model-corruption",
+              "description": "Identifier for the injected failure."
+            },
+            {
+              "name": "failure_type",
+              "type": "string",
+              "example": "model_corruption",
+              "description": "Categorical description of failure (e.g., data_drift, model_corruption, vendor_data_failure)."
+            },
+            {
+              "name": "injection_time",
+              "type": "string",
+              "format": "ISO-8601 datetime",
+              "description": "Timestamp when the failure was first applied."
+            },
+            {
+              "name": "parameters",
+              "type": "object",
+              "description": "Key-value map of parameters controlling the failure (e.g., drift_magnitude, missing_rate)."
+            }
+          ]
+        },
+        "description": "List of induced failures and their properties for this run."
+      },
+      {
+        "name": "alerts",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "alert_id",
+              "type": "string",
+              "description": "Unique identifier of the alert event."
+            },
+            {
+              "name": "timestamp",
+              "type": "string",
+              "format": "ISO-8601 datetime",
+              "description": "Time at which the alert was generated."
+            },
+            {
+              "name": "metric_name",
+              "type": "string",
+              "example": "psi_income_feature",
+              "description": "Name of the metric that triggered the alert."
+            },
+            {
+              "name": "metric_value",
+              "type": "number",
+              "description": "Value of the metric at alert triggering time."
+            },
+            {
+              "name": "threshold",
+              "type": "number",
+              "description": "Configured threshold associated with the alert."
+            },
+            {
+              "name": "severity",
+              "type": "string",
+              "allowed_values": [
+                "info",
+                "warning",
+                "critical"
+              ],
+              "description": "Severity level of the alert."
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "allowed_values": [
+                "infra",
+                "ai_input",
+                "ai_output",
+                "ai_model_internal",
+                "monitoring_health"
+              ],
+              "description": "High-level categorization of the alert."
+            },
+            {
+              "name": "related_injection_id",
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "If applicable, the injection_id this alert is associated with, for labeling true/false positives."
+            }
+          ]
+        },
+        "description": "All alerts raised during the run, including those not tied to injected failures."
+      },
+      {
+        "name": "runbook_actions",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "action_id",
+              "type": "string",
+              "description": "Unique identifier for the logged runbook action."
+            },
+            {
+              "name": "timestamp",
+              "type": "string",
+              "format": "ISO-8601 datetime",
+              "description": "Time at which the action was taken (or simulated)."
+            },
+            {
+              "name": "action_type",
+              "type": "string",
+              "example": "switch_to_fallback_model",
+              "description": "Categorical type of action (e.g., notify_risk_team, rollback_model, enable_manual_review)."
+            },
+            {
+              "name": "triggering_alert_id",
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ID of the alert that directly triggered this action, if any."
+            },
+            {
+              "name": "runbook_step_id",
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Identifier referring to the prescribed runbook step executed."
+            },
+            {
+              "name": "metadata",
+              "type": "object",
+              "description": "Additional structured details (e.g., parameters of fallback, fraction of traffic rerouted)."
+            }
+          ]
+        },
+        "description": "Sequence of actions taken under the AI incident runbooks during the run."
+      },
+      {
+        "name": "oracle_metrics_time_series",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "timestamp",
+              "type": "string",
+              "format": "ISO-8601 datetime",
+              "description": "Time at which the oracle metrics were computed (may be lagged)."
+            },
+            {
+              "name": "auc",
+              "type": "number",
+              "description": "Computed AUC of the model at this time window, using realized labels."
+            },
+            {
+              "name": "error_rate",
+              "type": "number",
+              "description": "Misclassification rate over the recent time window."
+            },
+            {
+              "name": "financial_impact_rate",
+              "type": "number",
+              "description": "Estimated financial impact per unit time (e.g., per minute) based on synthetic loss rules."
+            }
+          ]
+        },
+        "description": "Time series of oracle performance and impact metrics for post-hoc analysis and ground truth comparison."
+      },
+      {
+        "name": "aggregated_outcomes",
+        "type": "object",
+        "fields": [
+          {
+            "name": "time_to_detection",
+            "type": [
+              "number",
+              "null"
+            ],
+            "unit": "seconds",
+            "description": "Computed for each injected failure as earliest relevant alert time minus injection time; null if missed."
+          },
+          {
+            "name": "time_to_containment_decision",
+            "type": [
+              "number",
+              "null"
+            ],
+            "unit": "seconds",
+            "description": "Time from injection to first containment-related runbook action; null if none."
+          },
+          {
+            "name": "time_to_stable_recovery",
+            "type": [
+              "number",
+              "null"
+            ],
+            "unit": "seconds",
+            "description": "Time from injection to stable metric recovery; null if stability criterion not achieved in run."
+          },
+          {
+            "name": "false_positive_alert_count",
+            "type": "integer",
+            "description": "Number of alerts not associated with any injected failure or oracle-defined degradation crossing thresholds."
+          },
+          {
+            "name": "cumulative_misclassified_decisions",
+            "type": "integer",
+            "description": "Total number of misclassified decisions during the run relative to a gold-standard model/policy."
+          },
+          {
+            "name": "estimated_incident_financial_impact",
+            "type": "number",
+            "description": "Total estimated financial impact across the run, aggregated from oracle_metrics_time_series and decision logs."
+          },
+          {
+            "name": "operator_runbook_adherence",
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Fraction of prescribed runbook steps correctly executed; null if no runbook defined (e.g., baseline)."
+          },
+          {
+            "name": "alert_precision",
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Fraction of alerts that correspond to actual injected failures or oracle-defined degradations."
+          }
+        ],
+        "description": "Derived summary metrics for each run, used to evaluate success criteria."
+      }
+    ]
+  }
+}

@@ -1,0 +1,600 @@
+{
+  "experiment_id": "ch7-scenario-ai-model-collapse-stresstest-v1",
+  "hypothesis": "An AI-augmented stress testing framework that explicitly models AI-specific failure scenarios (micro, firm-wide, and systemic) and propagates them through simplified financial, conduct, and operational loss channels will produce (1) higher and more differentiated tail-risk loss estimates, and (2) clearer attribution of losses to AI-driven mechanisms, compared with a baseline framework that applies only traditional macroeconomic and idiosyncratic shocks without explicit AI failure modeling.",
+  "baseline": {
+    "description": "Conventional enterprise stress testing setup with no explicit representation of AI model failures. Stress tests are driven by macroeconomic and market variables (e.g., GDP, unemployment, interest rates, credit spreads, market indices) and simple idiosyncratic shocks (e.g., operational loss events), but AI-driven behavior and automation loops are not modeled as distinct risk drivers.",
+    "features": [
+      "Scenario set composed of standard macroeconomic and market-downturn scenarios (e.g., severe recession, market crash, rates shock).",
+      "Portfolio loss models for credit, market, and operational risk that take macro factors and business volumes as inputs, using static or historically calibrated relationships.",
+      "Operational loss modeled as exogenous losses or simple percentages of business volumes, without distinguishing AI-related from non-AI-related incidents.",
+      "No explicit variables for AI dependency, AI failure states, or automation levels; models assume decision processes and control environments remain stable under stress.",
+      "No explicit reverse stress testing anchored on AI collapse; only limited narrative back-testing of historical scenarios."
+    ],
+    "implementation_outline": {
+      "scenario_definition": "Static JSON/YAML files specifying paths for macro variables over a 12\u201336 month horizon.",
+      "loss_engine": "Vectorized Python/NumPy or pandas-based functions that map macro paths to credit defaults, market P&L, and aggregate operational losses.",
+      "outputs": [
+        "Total losses by major risk type (credit, market, operational) per scenario and horizon.",
+        "Capital ratio impact (e.g., CET1) per scenario.",
+        "Simple aggregate loss exceedance metrics (e.g., 99.5th percentile loss across scenario set if probabilistic weights are assigned)."
+      ]
+    }
+  },
+  "treatment": {
+    "description": "Extended stress testing framework that overlays AI-specific failure scenarios on top of, or alongside, traditional macro scenarios, and explicitly propagates AI-related shocks into financial, conduct, and operational loss channels. Includes reverse stress testing from AI-collapse narratives and produces AI-attribution views for senior stakeholders.",
+    "features": [
+      "Scenario generator that constructs AI failure scenarios at three levels: micro (single-model/service failure), firm-wide (multi-model/common-cause failure), and systemic (market/industry-wide feedback loops).",
+      "Explicit AI state variables (e.g., AI availability, confidence, autonomy_level, data_integrity, control_effectiveness) that evolve over the scenario horizon and interact with volumes, error rates, and control overrides.",
+      "Loss propagation engine that translates AI state changes into adjustments to default rates, pricing errors, trading P&L slippage, fraud leakage, conduct fines, remediation costs, and incident-response overhead.",
+      "Integration layer that superimposes AI-specific shocks onto macroeconomic scenarios, enabling combined macro+AI stress outcomes and comparison to macro-only baselines.",
+      "Reverse stress testing module that searches over AI shock severities and combinations to identify minimally severe AI breakdowns that breach a specified capital or liquidity threshold.",
+      "Scenario narrative builder that produces structured, board-ready tables and text summaries describing the AI failure path, key drivers, and time profile of losses."
+    ],
+    "implementation_outline": {
+      "ai_scenario_definition": "Structured JSON/YAML templates defining AI failure modes, affected functions, severities, durations, onset patterns, and control responses.",
+      "ai_state_dynamics": "Deterministic or stochastic update rules coded in Python (e.g., discrete-time state transition functions) that evolve AI state variables given macro conditions and scenario parameters.",
+      "loss_propagation": "Parametric functions and sensitivity matrices linking AI state to financial, conduct, and operational loss parameters (e.g., multipliers on PD, LGD, error rates, fraud detection hit-rates).",
+      "reverse_stress_engine": "Grid search or simple optimization routine that perturbs key AI severity levers (e.g., scope of outage, misclassification rate shocks, duration) to find boundary conditions leading to breach of chosen risk tolerances.",
+      "outputs": [
+        "Per-scenario loss time series with attribution by (risk_type, AI_vs_nonAI, business_line, scenario_level_micro_firm_systemic).",
+        "Capital and liquidity impact curves under AI-only, macro-only, and combined macro+AI shocks.",
+        "Reverse stress frontier: parameter sets of AI failure conditions that push the firm to defined breaking points.",
+        "Tabular + JSON summaries suitable for visualization tools (e.g., waterfall charts, heatmaps)."
+      ]
+    }
+  },
+  "workloads": [
+    {
+      "name": "W1_micro_level_ai_failure_scenarios",
+      "objective": "Test the framework's ability to model localized AI model collapse (single or small cluster of models) and propagate impacts into specific product lines without overwhelming firm-wide metrics.",
+      "inputs": {
+        "portfolio_snapshot": "Synthetic or anonymized dataset of retail lending exposures (e.g., 100k loans) with fields: customer_id, segment, exposure_at_default, probability_of_default, loss_given_default, product_type.",
+        "baseline_macro_scenario": "Mild stress macro scenario (e.g., small GDP decline, modest unemployment increase) with no AI failure.",
+        "ai_failure_templates": [
+          {
+            "id": "micro_retail_credit_drift",
+            "description": "Credit decisioning model for unsecured loans experiences unmonitored data drift, underestimating risk for a specific customer segment.",
+            "level": "micro",
+            "affected_functions": [
+              "retail_credit_underwriting"
+            ],
+            "severity": "medium",
+            "start_month": 3,
+            "duration_months": 9,
+            "mechanics": {
+              "pd_multiplier_target_segment": 1.8,
+              "booking_volume_increase": 1.25,
+              "detection_delay_months": 6,
+              "post_detection_tightening_factor": 0.8
+            }
+          },
+          {
+            "id": "micro_call_centre_genai_misadvice",
+            "description": "GenAI assistant used in call center provides systematically inaccurate fee-waiver and dispute-resolution advice, increasing conduct and remediation costs.",
+            "level": "micro",
+            "affected_functions": [
+              "customer_service",
+              "dispute_resolution"
+            ],
+            "severity": "low",
+            "start_month": 1,
+            "duration_months": 6,
+            "mechanics": {
+              "misadvice_rate_increase": 0.15,
+              "average_remediation_cost_per_case": 150,
+              "complaint_rate_multiplier": 1.3,
+              "regulatory_fine_probability": 0.05
+            }
+          }
+        ]
+      },
+      "steps": [
+        "Run the baseline loss engine on the portfolio under the mild macro scenario with no AI shock; record losses and key risk indicators by month and by product segment.",
+        "Activate the micro-level AI failure templates sequentially (one at a time) and re-run the stress engine using the treatment framework.",
+        "Propagate AI state impacts: adjust PDs, booking volumes, and operational/conduct loss parameters for the affected functions according to the AI scenario mechanics.",
+        "Record incremental losses, attribution by AI/non-AI, and changes in segment-level risk metrics relative to the baseline.",
+        "Optionally, run a combined micro scenario where both AI failure templates are active, to test interaction effects and attribution clarity."
+      ],
+      "expected_observations": [
+        "Localized but material increases in credit losses for the targeted retail segment due to PD and volume shifts under the micro_retail_credit_drift scenario.",
+        "Limited impact on aggregate firm capital ratios but noticeable degradation in segment-level performance and conduct/operational KPIs.",
+        "Clear separation in outputs between AI-induced incremental losses and macro-driven baseline losses.",
+        "Sensitivity of total impact to detection_delay_months and booking_volume_increase parameters, supporting board-level discussions about monitoring and risk appetite."
+      ]
+    },
+    {
+      "name": "W2_firm_wide_common_cause_ai_failure_scenarios",
+      "objective": "Evaluate the framework's ability to handle cross-business common-cause AI failures that affect multiple models sharing infrastructure, vendors, or data sources, and to quantify firm-wide impacts.",
+      "inputs": {
+        "portfolio_snapshots": {
+          "retail_lending": "Synthetic/anonymized dataset as in W1.",
+          "corporate_lending": "Dataset of 10k corporate exposures including industry, rating, exposure_at_default, probability_of_default, loss_given_default.",
+          "trading_book": "Position set including asset_class, position_size, risk_sensitivities for a variety of instruments.",
+          "fraud_detection": "Transaction summary features by business line (e.g., volumes, base fraud rates, detection rates)."
+        },
+        "baseline_macro_scenario": "Severe macro downturn scenario used in the existing stress testing program (e.g., deep recession with significant credit and market stress).",
+        "ai_failure_template": {
+          "id": "firmwide_feature_store_corruption",
+          "description": "Centralized feature store and shared vendor model outputs become corrupted due to undetected data pipeline error, affecting credit, market, and fraud models simultaneously.",
+          "level": "firm_wide",
+          "affected_functions": [
+            "retail_credit_underwriting",
+            "corporate_credit_underwriting",
+            "trading_signal_generation",
+            "fraud_detection"
+          ],
+          "severity": "high",
+          "start_month": 2,
+          "duration_months": 4,
+          "mechanics": {
+            "retail_pd_multiplier": 1.4,
+            "corporate_pd_multiplier": 1.3,
+            "market_pnl_volatility_multiplier": 1.5,
+            "fraud_detection_hit_rate_reduction": 0.35,
+            "mispricing_spread_bp": 20,
+            "control_override_probability": 0.2,
+            "detection_delay_months": 2
+          }
+        }
+      },
+      "steps": [
+        "Run the baseline framework under the severe macro scenario, capturing credit, market, and operational/fraud losses over the horizon.",
+        "Using the treatment framework, overlay the firmwide_feature_store_corruption AI failure on the same macro path.",
+        "Update PDs, mispricing spreads, trading P&L volatility, and fraud detection effectiveness according to the AI scenario mechanics, distinguishing pre- and post-detection periods.",
+        "Compute incremental losses across all affected functions and aggregate to firm-wide totals, while preserving attribution tags (AI vs macro vs interaction).",
+        "Compare total and component-wise losses between baseline and treatment runs, and generate AI attribution reports for board/regulator-style outputs.",
+        "Run sensitivity sweeps where severity and duration parameters are varied (e.g., \u00b125%), to examine non-linearities and tail behavior."
+      ],
+      "expected_observations": [
+        "Significant upward shift in firm-wide tail losses compared with macro-only baseline, especially in fraud and trading P&L distributions.",
+        "Demonstration that common-cause AI failures can create correlated losses across businesses that appear independent in macro-only stress tests.",
+        "Evidence that even with severe macro stress, AI-driven mispricing, fraud leakage, and elevated PDs add incremental losses that may push capital metrics close to, or beyond, management risk appetite thresholds.",
+        "Identification of key parameters (e.g., fraud_detection_hit_rate_reduction, detection_delay_months) that disproportionately influence total impact."
+      ]
+    },
+    {
+      "name": "W3_systemic_ai_feedback_loop_scenarios",
+      "objective": "Model sector-wide or market-wide AI failures that induce feedback loops and reflexivity, and assess how these systemic AI shocks combine with firm-specific exposures.",
+      "inputs": {
+        "portfolio_snapshot": "Consolidated portfolio including trading positions and securities holdings that are sensitive to industry-wide flows (e.g., index futures, ETFs, sector credit indices).",
+        "peer_behavior_parameters": {
+          "ai_adoption_rate": 0.7,
+          "common_vendor_dependency": 0.6,
+          "herding_intensity": 1.0
+        },
+        "systemic_ai_failure_template": {
+          "id": "systemic_ai_trading_herding",
+          "description": "Widespread failure in an industry-standard AI trading signal service leads to synchronized selling across many firms, generating procyclical market moves and liquidity stress.",
+          "level": "systemic",
+          "affected_functions": [
+            "trading_signal_generation",
+            "execution_algorithms",
+            "liquidity_provision"
+          ],
+          "severity": "high",
+          "start_month": 1,
+          "duration_months": 3,
+          "mechanics": {
+            "initial_signal_error_direction": "sell",
+            "signal_error_magnitude": 0.3,
+            "liquidity_depth_reduction": 0.5,
+            "market_impact_multiplier": 2.0,
+            "volatility_multiplier": 2.5,
+            "regulatory_trading_halt_probability": 0.2
+          }
+        },
+        "macro_background": "Neutral macro scenario to isolate systemic AI impacts."
+      },
+      "steps": [
+        "Run baseline trading and liquidity stress tests under the neutral macro background with no AI-specific failures, producing P&L and liquidity metrics.",
+        "Instantiate the systemic_ai_trading_herding scenario in the treatment framework, using peer_behavior_parameters to approximate sector-wide flow amplification.",
+        "Simulate price paths incorporating increased volatility, reduced depth, and amplified market impact, and feed these into the firm's trading-book loss models.",
+        "Estimate additional liquidity costs (e.g., widening bid-ask spreads, forced liquidation haircuts) attributable to the systemic AI-driven herding.",
+        "Aggregate incremental P&L, liquidity metrics (e.g., LCR, NSFR proxies, margin calls), and any knock-on credit changes (e.g., downgrades in affected sectors).",
+        "Document how systemic AI behavior modifies the distribution of trading and liquidity outcomes relative to the baseline."
+      ],
+      "expected_observations": [
+        "Material increase in trading P&L volatility and tail losses relative to neutral baseline, despite unchanged macro conditions.",
+        "Demonstration that AI-induced systemic behavior can generate stress outcomes comparable to, or exceeding, some traditional macro shock scenarios.",
+        "Visibility into how sector-wide AI failure can change liquidity and market impact parameters in ways that are not captured by traditional scenario designs.",
+        "Insight into optional mitigants, such as circuit breakers or diversification away from common vendor signals, that can be explored in follow-on analyses."
+      ]
+    },
+    {
+      "name": "W4_reverse_stress_testing_from_ai_perspective",
+      "objective": "Perform AI-focused reverse stress testing to identify minimally severe AI failure conditions that cause pre-specified firm-level breaches (e.g., regulatory capital, liquidity, or conduct risk thresholds).",
+      "inputs": {
+        "portfolio_snapshot": "Firm-wide snapshot compatible with W2.",
+        "constraints": {
+          "target_metric": "minimum_capital_ratio",
+          "threshold_value": 0.08,
+          "time_horizon_months": 36
+        },
+        "ai_severity_parameters": [
+          {
+            "name": "coverage_of_ai_outage",
+            "range": [
+              0.1,
+              1.0
+            ],
+            "description": "Fraction of AI-enabled decision processes affected by the failure."
+          },
+          {
+            "name": "error_rate_multiplier",
+            "range": [
+              1.0,
+              5.0
+            ],
+            "description": "Factor by which model misclassification or mispricing errors increase during failure."
+          },
+          {
+            "name": "failure_duration_months",
+            "range": [
+              1,
+              12
+            ],
+            "description": "Length of time before stabilizing interventions or model disablement."
+          },
+          {
+            "name": "control_effectiveness_reduction",
+            "range": [
+              0.0,
+              0.9
+            ],
+            "description": "Proportional reduction in efficacy of existing controls (e.g., human oversight, thresholds)."
+          }
+        ],
+        "macro_background": "User-selectable: can be neutral or a specified macro stress scenario."
+      },
+      "steps": [
+        "Specify the macro background scenario and run the baseline framework to establish capital trajectory and confirm that the threshold_value is not breached absent AI failures.",
+        "Configure the treatment framework's reverse_stress_engine with ai_severity_parameters and define a search grid or simple heuristic search (e.g., Latin hypercube sampling or coarse grid search followed by refinement).",
+        "For each candidate parameter combination, run the AI-augmented stress engine and record the minimum_capital_ratio over the horizon.",
+        "Identify and store all parameter combinations that cause the capital ratio to fall below the threshold_value, with emphasis on combinations that are 'minimal' (e.g., lowest joint severity according to a chosen norm or weighted score).",
+        "Generate summary tables of these minimal-breaking combinations, including narrative-ready descriptions (e.g., 'A 6 month outage affecting 40% of AI-dependent processes with a 3x error rate increase and 50% control effectiveness reduction during a moderate macro downturn would breach the 8% capital threshold.')."
+      ],
+      "expected_observations": [
+        "Existence of multiple AI-failure parameter combinations that can cause threshold breaches, even under moderate macro assumptions.",
+        "Ability to rank AI failure severities by 'distance to breach', producing a practical mapping from AI risk appetite to scenario severity bounds.",
+        "Enhanced board-level insight into which aspects of AI risk (coverage, error magnitude, duration, controls) are most critical for preserving capital resilience."
+      ]
+    },
+    {
+      "name": "W5_tabletop_exercise_and_communication_outputs",
+      "objective": "Produce structured scenario narratives and loss timelines from the treatment framework suitable for use in tabletop exercises and external communication simulations.",
+      "inputs": {
+        "selected_scenarios": [
+          "One micro-level scenario from W1.",
+          "One firm-wide scenario from W2.",
+          "One systemic scenario from W3."
+        ],
+        "stakeholder_views": [
+          "board",
+          "regulator",
+          "investor_relations",
+          "internal_audit"
+        ]
+      },
+      "steps": [
+        "Run the selected scenarios using the treatment framework to generate full loss time series, AI-state trajectories, and attribution data.",
+        "Use the scenario narrative builder to synthesize for each scenario: (a) initial triggers and detection, (b) month-by-month evolution of key metrics, (c) peak stress point, (d) remediation actions and recovery timeline.",
+        "Produce tailored summary views for each stakeholder group (e.g., capital ratios and governance actions for regulators, earnings impact and risk-mitigation narrative for investors).",
+        "Export the resulting artifacts (JSON/CSV tables, markdown or PDF narratives) as inputs for separate, human-led tabletop or communication drills."
+      ],
+      "expected_observations": [
+        "Generation of consistent, data-backed scenario narratives with quantitative anchors suitable for executive and board consumption.",
+        "Ability to highlight AI-specific risk drivers and points of intervention within the scenario timeline.",
+        "Improved clarity compared with ad hoc, qualitatively defined tabletop scenarios, while remaining accessible to non-technical participants."
+      ]
+    }
+  ],
+  "controls": {
+    "data_controls": [
+      "Use the same portfolio snapshots, macro scenarios, and initial risk parameter calibrations for both baseline and treatment runs to ensure comparability.",
+      "Fix random seeds for any stochastic components (e.g., Monte Carlo paths, peer behavior) when comparing baseline vs treatment for a given scenario.",
+      "Document all data sources and transformations (even for synthetic data) in a configuration file under version control."
+    ],
+    "model_controls": [
+      "Ensure the baseline and treatment frameworks share identical macro-driven loss models; only AI state and loss propagation extensions should differ.",
+      "Validate that when AI failure severities are set to 'no shock' values (e.g., multipliers of 1, duration 0), the treatment framework reproduces the baseline results within numerical tolerance.",
+      "Implement unit tests for state transition and loss propagation functions, checking expected relationships (e.g., higher PD multipliers should not reduce credit losses)."
+    ],
+    "process_controls": [
+      "Run baseline and treatment for each scenario configuration in the same execution environment and process, differing only in enablement of AI scenario modules.",
+      "Log configuration hashes and code version identifiers (e.g., git commit SHAs) for each run to support reproducibility.",
+      "Use automated checks to confirm scenarios are correctly mapped to affected functions and that no unintended portfolios are impacted."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "total_loss",
+      "description": "Aggregate loss (credit + market + operational + conduct) over the specified horizon for each scenario.",
+      "unit": "currency_units"
+    },
+    {
+      "name": "loss_by_risk_type",
+      "description": "Breakdown of losses by risk type (credit, market, operational, conduct) per scenario and time step.",
+      "unit": "currency_units"
+    },
+    {
+      "name": "ai_attributed_loss",
+      "description": "Portion of total loss that is attributable to AI-specific drivers, based on scenario tagging and propagation logic.",
+      "unit": "currency_units"
+    },
+    {
+      "name": "capital_ratio_trajectory",
+      "description": "Time series of chosen capital ratio (e.g., CET1) under each scenario.",
+      "unit": "ratio"
+    },
+    {
+      "name": "min_capital_ratio",
+      "description": "Minimum capital ratio reached over the horizon under a given scenario.",
+      "unit": "ratio"
+    },
+    {
+      "name": "liquidity_metric_trajectory",
+      "description": "Time series of key liquidity indicators (e.g., LCR proxy, peak funding gap) under each scenario.",
+      "unit": "various (dimensionless ratio or currency_units)"
+    },
+    {
+      "name": "ai_scenario_severity_score",
+      "description": "Composite index summarizing the overall severity of an AI scenario, combining coverage, error magnitude, duration, and control degradation.",
+      "unit": "dimensionless_score"
+    },
+    {
+      "name": "distance_to_breach",
+      "description": "For reverse stress testing, the minimal change in AI scenario severity (under a defined norm) required to cause a specified capital or liquidity threshold breach.",
+      "unit": "dimensionless_score"
+    },
+    {
+      "name": "portfolio_segment_loss_concentration",
+      "description": "Share of total losses attributable to top-N segments (e.g., products, regions) under each scenario, indicating concentration risk.",
+      "unit": "percentage"
+    },
+    {
+      "name": "scenario_runtime",
+      "description": "Execution time required to run a full scenario (baseline or treatment) for performance and scalability assessment.",
+      "unit": "seconds"
+    }
+  ],
+  "success_criteria": [
+    "The treatment framework produces non-trivial incremental ai_attributed_loss (greater than a configurable minimal threshold, e.g., 5% of total_loss) for at least one micro, one firm-wide, and one systemic AI scenario when overlaid on realistic macro conditions.",
+    "When AI failure parameters are set to neutral (no shock), the difference between baseline and treatment outputs for total_loss and min_capital_ratio is within a narrow tolerance (e.g., <0.5% relative error), demonstrating that the AI module is an additive extension rather than a replacement of the core loss engine.",
+    "The treatment framework can identify at least one combination of AI severity parameters in W4 that leads to breach of the specified capital threshold, and can rank multiple combinations by ai_scenario_severity_score and distance_to_breach.",
+    "For at least one firm-wide scenario in W2, the proportion of total_loss explainable by AI-driven correlations across business lines (ai_attributed_loss share) is meaningfully larger (e.g., by \u226510 percentage points) than under any single micro-level scenario, illustrating the systemic amplification effect.",
+    "Scenario outputs from the treatment framework can be transformed into structured narrative artifacts (as defined in evidence_schema) without manual rework, suitable for use in tabletop exercises and board-level communication, confirming that the data model supports governance use cases.",
+    "Scenario_runtime for typical portfolio sizes (e.g., ~100k\u2013500k positions) remains within acceptable bounds for exploratory analysis (e.g., <5 minutes per scenario on a standard engineering workstation or equivalent cloud instance), enabling practical use."
+  ],
+  "failure_modes": [
+    {
+      "name": "non_identifiable_ai_impact",
+      "description": "AI-attributed losses cannot be cleanly distinguished from macro-driven losses in the outputs, leading to ambiguous attribution and undermining the purpose of the AI scenarios.",
+      "indicators": [
+        "ai_attributed_loss is consistently near zero or highly unstable across runs for the same scenario configuration.",
+        "Changes in AI severity parameters do not systematically alter ai_attributed_loss while total_loss changes significantly."
+      ]
+    },
+    {
+      "name": "over_sensitivity_or_instability",
+      "description": "Small changes in AI scenario parameters produce disproportionately large or chaotic shifts in outputs, suggesting numerical instability or mis-specified propagation functions.",
+      "indicators": [
+        "Very large swings in total_loss or min_capital_ratio for tiny parameter perturbations (e.g., \u00b11% in a multiplier).",
+        "Non-monotonic responses where increasing severity reduces losses due to coding errors."
+      ]
+    },
+    {
+      "name": "baseline_misalignment",
+      "description": "The treatment framework fails to reproduce baseline results when AI shocks are turned off, indicating implementation or configuration drift.",
+      "indicators": [
+        "Relative errors >0.5% between baseline and treatment outputs in no-shock configurations.",
+        "Unit tests comparing baseline and treatment modules fail or produce inconsistent results."
+      ]
+    },
+    {
+      "name": "unrealistic_loss_profiles",
+      "description": "Loss time profiles or levels under AI scenarios are implausible to domain experts (e.g., negative losses, impossible conduct fines), suggesting conceptual or scaling issues.",
+      "indicators": [
+        "Negative or oscillating loss trajectories where not theoretically justified.",
+        "Conduct fines or remediation costs exceeding reasonable multiples of affected volumes without explanatory mechanisms."
+      ]
+    },
+    {
+      "name": "performance_bottlenecks",
+      "description": "Scenario runs become prohibitively slow as portfolio size or scenario complexity increases, discouraging use in practice.",
+      "indicators": [
+        "scenario_runtime exceeds defined thresholds for typical workloads.",
+        "CPU or memory utilization saturates for moderate-scale runs."
+      ]
+    },
+    {
+      "name": "communication_unreadability",
+      "description": "Generated scenario narratives and summaries are too technical or fragmented to be useful in board-level or regulator communications.",
+      "indicators": [
+        "Narrative artifacts missing key qualitative elements (triggers, timeline, management actions).",
+        "Stakeholder-specific summaries cannot be assembled from available evidence fields without extensive manual restructuring."
+      ]
+    }
+  ],
+  "required_environment": {
+    "runtime": "Python 3.10+",
+    "recommended_packages": [
+      "numpy>=1.24",
+      "pandas>=2.0",
+      "scipy>=1.10",
+      "pydantic>=2.0",
+      "matplotlib>=3.7",
+      "seaborn>=0.13",
+      "pyyaml>=6.0",
+      "tqdm>=4.65",
+      "jupyterlab>=4.0"
+    ],
+    "hardware": {
+      "minimum": "4 CPU cores, 8 GB RAM",
+      "recommended": "8+ CPU cores, 16+ GB RAM for larger synthetic portfolios and multiple scenario sweeps"
+    },
+    "repository_structure": {
+      "root": "https://github.com/bookauthority/boardroom-blind-spots",
+      "paths": [
+        "experiments/ch7_ai_scenarios/config/  # YAML/JSON scenario templates and environment configs",
+        "experiments/ch7_ai_scenarios/notebooks/  # Jupyter notebooks to run workloads W1\u2013W5",
+        "experiments/ch7_ai_scenarios/src/  # Python modules for scenario generation and loss engines",
+        "experiments/ch7_ai_scenarios/data/  # Synthetic or anonymized input datasets",
+        "experiments/ch7_ai_scenarios/output/  # Generated results and evidence artifacts"
+      ]
+    },
+    "orchestration": {
+      "optional": "Makefile or simple CLI (e.g., Typer/Click) to trigger baseline vs treatment runs and generate evidence bundles."
+    }
+  },
+  "run_instructions": [
+    "Clone the repository: `git clone https://github.com/bookauthority/boardroom-blind-spots.git` and change into the directory `cd boardroom-blind-spots`.",
+    "Create and activate a virtual environment (e.g., `python -m venv .venv && source .venv/bin/activate` on Unix-like systems, or the equivalent on Windows).",
+    "Install dependencies: `pip install -r experiments/ch7_ai_scenarios/requirements.txt` (or, if not provided, install the packages listed in required_environment).",
+    "Inspect and, if needed, adjust configuration files in `experiments/ch7_ai_scenarios/config/`, including: (a) portfolio and macro scenario definitions, (b) AI scenario templates for W1\u2013W3, (c) reverse stress testing parameter ranges for W4, and (d) narrative generation settings for W5.",
+    "Run unit and consistency tests: execute `pytest` or an equivalent command from the repository root (if provided), focusing on tests in `experiments/ch7_ai_scenarios/tests/` to confirm environment correctness and baseline\u2013treatment alignment.",
+    "Execute baseline runs for all applicable workloads using the provided CLI or notebooks, e.g.: `python -m experiments.ch7_ai_scenarios.run --mode baseline --workload W1` or by opening `notebooks/W1_micro_scenarios.ipynb` and running all cells with `mode='baseline'`.",
+    "Execute treatment runs with AI scenarios enabled, using matching inputs, e.g.: `python -m experiments.ch7_ai_scenarios.run --mode treatment --workload W1` or by running the corresponding sections in the Jupyter notebooks.",
+    "For W4 (reverse stress testing), run the specific routine: e.g., `python -m experiments.ch7_ai_scenarios.run_reverse_stress --config config/reverse_stress.yaml`, which will sweep AI severity parameters and record combinations breaching the defined thresholds.",
+    "For W5 (tabletop and communication outputs), after running the selected scenarios, execute the narrative builder: e.g., `python -m experiments.ch7_ai_scenarios.build_narratives --scenario-ids micro_retail_credit_drift firmwide_feature_store_corruption systemic_ai_trading_herding --stakeholders board regulator investor_relations internal_audit`.",
+    "Collect generated output artifacts from `experiments/ch7_ai_scenarios/output/`, including structured data files, plots, and narrative documents. Validate that evidence conforms to the schema defined in evidence_schema and archive run metadata (config files, git commit hash, timestamps) for traceability."
+  ],
+  "evidence_schema": {
+    "run_metadata": {
+      "run_id": "string (UUID or timestamp-based identifier)",
+      "experiment_id": "string (e.g., 'ch7-scenario-ai-model-collapse-stresstest-v1')",
+      "workload_name": "string (e.g., 'W2_firm_wide_common_cause_ai_failure_scenarios')",
+      "mode": "string enum: ['baseline', 'treatment']",
+      "code_version": "string (e.g., git commit SHA)",
+      "config_files": [
+        "string (paths to configuration files used in the run)"
+      ],
+      "timestamp_start": "ISO 8601 datetime string",
+      "timestamp_end": "ISO 8601 datetime string",
+      "runtime_seconds": "number"
+    },
+    "inputs": {
+      "portfolio_descriptors": [
+        {
+          "name": "string (e.g., 'retail_lending')",
+          "record_count": "integer",
+          "source_path": "string (relative file path or database reference)",
+          "snapshot_date": "ISO 8601 date string"
+        }
+      ],
+      "macro_scenario_id": "string",
+      "ai_scenario_ids": [
+        "string (IDs of AI scenario templates applied, if any)"
+      ],
+      "reverse_stress_parameters": {
+        "enabled": "boolean",
+        "parameter_ranges": [
+          {
+            "name": "string",
+            "min": "number",
+            "max": "number"
+          }
+        ]
+      }
+    },
+    "outputs": {
+      "metrics_aggregated": {
+        "total_loss": "number",
+        "loss_by_risk_type": {
+          "credit": "number",
+          "market": "number",
+          "operational": "number",
+          "conduct": "number"
+        },
+        "ai_attributed_loss": "number",
+        "capital_ratio_trajectory": [
+          {
+            "month": "integer",
+            "value": "number"
+          }
+        ],
+        "min_capital_ratio": "number",
+        "liquidity_metric_trajectory": [
+          {
+            "month": "integer",
+            "metric_name": "string",
+            "value": "number"
+          }
+        ],
+        "ai_scenario_severity_score": "number",
+        "distance_to_breach": "number | null (null if no threshold breach identified)"
+      },
+      "metrics_by_segment": [
+        {
+          "segment_id": "string (e.g., product or business line identifier)",
+          "total_loss": "number",
+          "ai_attributed_loss": "number",
+          "portfolio_segment_loss_concentration": "number (percentage share of firm-wide loss)",
+          "additional_fields": {
+            "pd_multiplier": "number | null",
+            "lgd_multiplier": "number | null",
+            "fraud_detection_hit_rate_reduction": "number | null"
+          }
+        }
+      ],
+      "reverse_stress_results": {
+        "threshold_metric": "string (e.g., 'min_capital_ratio')",
+        "threshold_value": "number",
+        "breaching_configurations": [
+          {
+            "configuration_id": "string",
+            "ai_severity_parameters": {
+              "coverage_of_ai_outage": "number",
+              "error_rate_multiplier": "number",
+              "failure_duration_months": "number",
+              "control_effectiveness_reduction": "number"
+            },
+            "min_capital_ratio": "number",
+            "ai_scenario_severity_score": "number",
+            "distance_to_breach": "number"
+          }
+        ]
+      },
+      "plots": [
+        {
+          "plot_id": "string",
+          "description": "string",
+          "file_path": "string (relative path to image file, e.g., PNG/SVG)",
+          "plot_type": "string (e.g., 'time_series', 'waterfall', 'heatmap')"
+        }
+      ]
+    },
+    "narratives": {
+      "scenarios": [
+        {
+          "scenario_id": "string",
+          "scenario_level": "string enum: ['micro', 'firm_wide', 'systemic']",
+          "title": "string",
+          "summary": "string (short, board-ready description of the scenario)",
+          "timeline": [
+            {
+              "month": "integer",
+              "event": "string (e.g., 'AI drift detected in retail credit model')",
+              "key_metrics": {
+                "total_loss": "number",
+                "capital_ratio": "number",
+                "ai_attributed_loss": "number"
+              },
+              "management_actions": "string (description of assumed or recommended actions at this stage)"
+            }
+          ],
+          "stakeholder_views": [
+            {
+              "stakeholder": "string enum: ['board', 'regulator', 'investor_relations', 'internal_audit', 'other']",
+              "key_messages": [
+                "string (bullet-style messages tailored to this stakeholder)"
+              ],
+              "risk_highlights": [
+                "string (salient AI-related risks and mitigants from this scenario for the stakeholder)"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

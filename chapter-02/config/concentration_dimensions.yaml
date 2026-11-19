@@ -1,0 +1,4 @@
+# List of aggregation dimensions for concentration metrics.
+- vendor
+- business_line
+- exposure_channel

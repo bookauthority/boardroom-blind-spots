@@ -1,0 +1,804 @@
+{
+  "experiment_id": "exp-8-guardrails-controls-training-deployment-autonomy",
+  "hypothesis": "A reference guardrail framework that combines (1) pre-deployment data and model validation checks, (2) calibrated human oversight modes, and (3) runtime technical controls (kill switches, circuit breakers, rate limiters, access controls, and tamper-evident logging) will measurably reduce the frequency, duration, and impact of unsafe or policy-violating AI actions in financial workflows, without materially degrading acceptable throughput under normal conditions, compared with a minimally controlled baseline implementation.",
+  "baseline": {
+    "description": "A simple but realistic AI service representative of financial-services usage that exposes model decisions directly to an automated downstream action engine with only rudimentary safety controls.",
+    "architecture": {
+      "components": [
+        "AI Model Service: A stateless REST API wrapping a pre-trained model (e.g., credit-decision classifier or transaction anomaly scorer) that receives structured JSON inputs and returns a risk score or decision label.",
+        "Action Engine: A downstream process that converts model outputs into automated actions (e.g., approve/decline, high/medium/low review routing, or block/allow transaction) according to fixed rules.",
+        "Thin Request Gateway: A basic HTTP endpoint with authentication via a shared API token but no fine-grained access control, no rate limits, and minimal logging (request timestamp and HTTP status only).",
+        "Static Configuration: Hard-coded thresholds in application code for decision rules with no central risk-policy configuration or documented risk appetite parameters."
+      ]
+    },
+    "controls_present": {
+      "pre_deployment": [
+        "Basic unit tests to ensure API input/output schema consistency.",
+        "Single offline performance evaluation (e.g., AUC, accuracy) on a held-out dataset without systematic robustness or fairness checks."
+      ],
+      "human_oversight": [
+        "Default to fully automated decisions for all transactions below a hard-coded amount threshold (e.g., < $10,000), with manual review only above this limit.",
+        "No dynamic escalation based on model uncertainty or runtime anomaly indicators."
+      ],
+      "runtime": [
+        "No explicit kill switch or circuit breaker paths.",
+        "No rate limiting or per-client quotas; the system trusts all authenticated calls.",
+        "Flat logging: request path, timestamp, response code only; no linkage of decisions to policy checks or user identity."
+      ],
+      "policy_technical_alignment": [
+        "Implicit policy encoded in code comments and thresholds, not in machine-readable configuration.",
+        "No explicit mapping of use-case restrictions or ethical boundaries into runtime checks.",
+        "Minimal vendor/third-party expectations: assume model and infra are safe by default."
+      ],
+      "assurance": [
+        "No structured control testing beyond ad hoc developer tests.",
+        "No internal audit-style verification of guardrails or logging completeness."
+      ]
+    },
+    "intended_use_in_repo": "Provides a contrast condition in which unsafe or policy-violating behaviors are more likely to surface under stress workloads. Used to demonstrate the incremental effectiveness of the Chapter 8 guardrail framework implemented in the treatment."
+  },
+  "treatment": {
+    "description": "An enhanced AI guardrail framework applied to the same AI service and workloads as the baseline, adding structured pre-deployment controls, calibrated human oversight modes, runtime technical controls (kill switches, circuit breakers, rate limiters), policy guardrails, and auditable logging consistent with Chapter 8.",
+    "architecture": {
+      "components": [
+        "AI Model Service (unchanged core model): Same model weights and architecture as baseline to isolate the impact of controls; wrapped with additional validation and gating logic.",
+        "Policy & Control Engine: A configurable module that enforces use-case restrictions, risk appetite thresholds, and ethical boundaries using externalized, version-controlled policy files (e.g., YAML/JSON).",
+        "Oversight Orchestrator: A middleware layer that routes decisions between fully automatic, human-in-the-loop, and human-on-the-loop modes based on risk scores, uncertainty, and runtime indicators.",
+        "Runtime Control Layer: Implementations of kill switch, circuit breaker, and rate limiter patterns around the AI Model Service and Action Engine.",
+        "Access & Logging Layer: Fine-grained access control (per user/service role, per feature or endpoint) with structured, tamper-evident logs linking each decision to policy checks, user identity, and model version.",
+        "Control Test Harness: Automated scripts that probe the environment with synthetic and replayed scenarios to verify that the guardrails behave as designed (e.g., trip when thresholds are exceeded, lock down when kill switch is triggered)."
+      ]
+    },
+    "controls_added": {
+      "pre_deployment": [
+        "Data Quality Validation: Automated checks on training and evaluation datasets for missing values, out-of-range values, leakage patterns, and basic fairness diagnostics (e.g., group-wise performance metrics) with machine- and human-readable reports.",
+        "Model Behavior Validation: Scenario-based offline tests (including adverse and boundary inputs) to confirm that the model behaves within pre-defined safe envelopes aligned with a documented risk appetite.",
+        "Challenge Process Simulation: A scripted challenge review that must be programmatically signed off (e.g., via a config flag and recorded review metadata) before deployment scripts can proceed, mimicking independent challenge."
+      ],
+      "human_oversight": [
+        "Human-in-the-Loop Mode: For medium/high-risk or high-uncertainty decisions (thresholds configurable), model outputs are treated as recommendations requiring explicit human approval before the Action Engine executes.",
+        "Human-on-the-Loop Mode: For low/medium-risk streams, humans oversee batched decisions via dashboards and can initiate kill switches or tighten thresholds when red flags appear.",
+        "Calibration Logic: Thresholds that route cases into each oversight mode are configurable and logged; changes require dual control approval in configuration and are versioned."
+      ],
+      "runtime": [
+        "Kill Switch: A single configuration toggle (with API and CLI equivalents) that immediately diverts all new requests either to a safe fallback path (e.g., conservative rule-based policy) or to manual review queues; kill-switch activation and deactivation are logged with reason codes.",
+        "Circuit Breakers: Per-endpoint and per-client circuit breakers monitoring error rates, anomaly rates, or guardrail violation counts in rolling windows (e.g., 1-minute, 5-minute) and automatically opening circuits (stopping or degrading service) when thresholds are exceeded.",
+        "Rate Limiters: Configurable, per-identity and per-endpoint rate limits to prevent runaway automation or abuse (e.g., requests per second, decisions per minute), with explicit backoff behavior (HTTP 429 plus optional queuing).",
+        "Fallback Modes: Defined and tested fallback actions for each circuit-breaker and kill-switch state (e.g., default-to-safe denial, manual review, delayed processing), not silent failures."
+      ],
+      "policy_guardrails": [
+        "Use-Case Whitelisting: Each API client or workflow is associated with approved use-cases stored in policy configuration; requests specifying or inferring non-whitelisted use-cases are rejected or flagged.",
+        "Risk Appetite Boundaries: Explicit numerical and categorical constraints (e.g., maximum auto-approve rate by segment, maximum allowed model uncertainty for auto-approve) enforced centrally, with automatic re-routing of breaching decisions.",
+        "Ethical & Conduct Filters: Simple but illustrative rule-based checks (e.g., blocking use of prohibited features, minimum fairness thresholds, blocking decisions in jurisdictions with legal constraints) that must pass before executing high-impact actions."
+      ],
+      "technical_guardrails": [
+        "Access Control: Role-based access control (RBAC) with least-privilege roles for calling applications, operations users, and auditors; per-role permissions for reading logs, changing policy, invoking kill switches, or updating models.",
+        "Structured Logging: Append-only, structured logs capturing request ID, user/service identity, input summary (non-sensitive), model metadata (version, checksum), policy version, decision outcome, oversight mode, and control events (e.g., breaker open, kill switch toggled).",
+        "Tamper-Evident Audit Trails: Hash-chained log segments (e.g., per time window) where each record and segment includes cryptographic hashes of prior entries; integrity-check scripts that can be run to confirm no logs were altered post-hoc.",
+        "Vendor/Third-Party Hooks: Logged attribution of which vendor model or service produced each decision; capturing API signatures and basic performance metrics per vendor endpoint."
+      ],
+      "assurance": [
+        "Control Test Suite: A battery of automated tests that simulate normal, stressed, and malicious workloads to verify that: (a) decisions outside risk appetite are blocked or escalated, (b) rate limits and circuit breakers trigger under load or anomaly spikes, (c) kill switch behaves predictably, and (d) logs and audit chains remain consistent.",
+        "Internal Audit Emulation: Scripts that randomly sample decisions and reconstruct their lifecycle from audit logs (who/what/when/why) to validate completeness and traceability.",
+        "Independent Review Flags: Mechanisms to export summarized control metrics and anomalies for review by a separate process or role, with evidence stored for each review in the audit trail."
+      ]
+    },
+    "intended_use_in_repo": "Provides an executable reference implementation of a multi-layer guardrail framework for AI in financial workflows, allowing technical teams to replicate, extend, and test guardrail behaviors under the same workloads used for the baseline."
+  },
+  "workloads": [
+    {
+      "name": "WL1_normal_traffic",
+      "description": "Simulated normal-conditions workload where inputs follow the historical distribution used to train/validate the model, with realistic daily and intra-day volume patterns, to test whether added controls preserve acceptable throughput and latency under steady state.",
+      "inputs": {
+        "traffic_profile": {
+          "request_rate": "Poisson-like arrivals with configurable mean (e.g., 20 requests/sec baseline), with diurnal variation to mimic business hours.",
+          "duration": "At least 2 hours per run or enough to process 100,000+ requests, whichever occurs first.",
+          "mix_of_clients": "Multiple synthetic client identities with different rate profiles (e.g., retail front-end app, operations batch job)."
+        },
+        "data_profile": {
+          "feature_distributions": "Samples drawn from a held-out portion of the training-like dataset with no artificial drift.",
+          "use_cases": "Share of use-cases aligned with policy; no deliberate policy violations in this workload."
+        }
+      },
+      "applicability": "Run on both baseline and treatment environments using identical inputs (same random seed where applicable) to compare performance overhead and false-positive guardrail activations."
+    },
+    {
+      "name": "WL2_data_drift_and_model_stress",
+      "description": "Workload that introduces controlled deviations from historical data distributions (e.g., shifts in key features, new customer segment behaviors) to test whether the guardrails detect and appropriately respond to potential model degradation or unexpected patterns.",
+      "inputs": {
+        "traffic_profile": {
+          "request_rate": "Similar to WL1 but with moderate spikes (e.g., 2x baseline) during chosen windows.",
+          "duration": "1\u20132 hours or 50,000\u2013100,000 requests."
+        },
+        "data_profile": {
+          "drift_patterns": [
+            "Gradual univariate drift on a few key numeric features (e.g., mean income increasing by 20% over the test period).",
+            "Covariate shift where correlations between key features change.",
+            "Introduction of a new subgroup with limited representation in training data."
+          ],
+          "labels": "Ground-truth labels available for evaluation but not provided to the live service (to simulate real-time decisioning)."
+        }
+      },
+      "applicability": "Run on both baseline and treatment; used to compare how often each environment yields decisions that violate ex-post risk appetite bounds or fairness constraints and how quickly anomalies are detected or escalated."
+    },
+    {
+      "name": "WL3_policy_violation_and_misuse_attempts",
+      "description": "Workload that injects overt and subtle policy-violating requests, including attempts to use the model for unapproved purposes, access restricted features, or send inputs from disallowed jurisdictions, to test policy guardrails and access controls.",
+      "inputs": {
+        "traffic_profile": {
+          "request_rate": "Moderate (e.g., 10\u201315 requests/sec) with occasional bursts of concentrated misuse attempts from specific client identities.",
+          "duration": "30\u201360 minutes or 20,000\u201350,000 requests."
+        },
+        "data_profile": {
+          "policy_violation_cases": [
+            "Requests tagged (or inferrable) as belonging to non-whitelisted use-cases.",
+            "Requests that attempt to include disallowed features.",
+            "Requests originating from IP ranges/geos marked as prohibited.",
+            "Requests exceeding declared transaction-value or exposure caps."
+          ],
+          "benign_cases": "Interleaved normal traffic to assess false positives."
+        }
+      },
+      "applicability": "Run on baseline (for reference) and treatment (for evaluation of enforcement) with identical input streams; expect baseline to process many of these as normal, while treatment should block or escalate as configured."
+    },
+    {
+      "name": "WL4_adverse_event_and_feedback_loop_spike",
+      "description": "Stress workload representing a sudden market or operational event (e.g., flash fraud spike or market shock) causing correlated changes in input data and a sharp increase in request volume, designed to trigger circuit breakers, rate limiters, and possibly a kill switch.",
+      "inputs": {
+        "traffic_profile": {
+          "phases": [
+            "Phase A (Calm): 10\u201320 minutes of WL1-like behavior.",
+            "Phase B (Shock Onset): Rapid ramp-up to 5\u201310x normal request rate within minutes, sustained for 10\u201315 minutes.",
+            "Phase C (Aftermath): Return to moderate rates with residual elevated anomaly patterns."
+          ],
+          "clients": "Over-representation of one or two client identities to mimic a runaway automated strategy or compromised service."
+        },
+        "data_profile": {
+          "shock_features": [
+            "Distributional shifts in transaction attributes (e.g., unusually high amounts, clustering in a specific region or merchant category).",
+            "Patterns intended to look high-risk (e.g., correlated anomalies) but partially overlapping with legitimate high-volume business, to test selective throttling."
+          ]
+        }
+      },
+      "applicability": "Run on baseline and treatment to compare how quickly and effectively each environment contains unsafe behavior and how it degrades service (safe fallback vs uncontrolled behavior)."
+    },
+    {
+      "name": "WL5_kill_switch_operational_test",
+      "description": "A controlled workload to test manual and automated kill-switch behavior and recovery procedures under load, focusing on traceability and time-to-safe-state.",
+      "inputs": {
+        "traffic_profile": {
+          "request_rate": "Steady moderate rate (e.g., 20 requests/sec) throughout.",
+          "duration": "30 minutes, with pre-scheduled kill-switch activation points (manual and scripted)."
+        },
+        "data_profile": {
+          "cases": "Primarily normal traffic, with optional injection of a small percentage of clearly unsafe cases to justify kill-switch activation in a scripted scenario."
+        }
+      },
+      "applicability": "Run only on the treatment environment (the baseline lacks a kill switch) to demonstrate and measure operational behavior; used to validate audit trails, oversight actions, and safe fallback logic."
+    }
+  ],
+  "controls": {
+    "baseline_vs_treatment_comparability": [
+      "Identical model parameters and training data between baseline and treatment, differing only in control layers and configuration.",
+      "Identical workload inputs (request sequences, data records, client identities, random seeds) when comparing baseline and treatment for WL1\u2013WL4.",
+      "Same infrastructure class (e.g., instance type, container limits) for both variants to avoid confounding performance results.",
+      "Configuration files checked into version control and referenced by commit hash in experiment metadata to ensure reproducibility."
+    ],
+    "randomization_and_ordering": [
+      "Randomize the order in which baseline and treatment runs are executed per workload to mitigate environment warm-up or external load effects.",
+      "Use fixed random seeds for synthetic data generation and request ordering so that differences in outcomes can be attributed to control layers rather than randomness."
+    ],
+    "isolation": [
+      "Run baseline and treatment services in logically separate environments (namespaces or clusters) to prevent cross-talk; separate databases, log stores, and API endpoints.",
+      "Ensure no shared stateful components (e.g., caches) that could leak behavior between variants in concurrent tests."
+    ],
+    "measurement_consistency": [
+      "Use the same metrics collection tooling (e.g., Prometheus exporters, log parsers) and dashboards for both baseline and treatment runs.",
+      "Standardize log formats to align fields (timestamps, request IDs, client IDs) so that analyses compare like-for-like events."
+    ],
+    "governance_alignment": [
+      "Document and freeze a reference risk appetite statement, policy constraints, and oversight rules before running experiments; use this same specification to generate configuration for the treatment.",
+      "Obtain sign-off from a designated risk role (or proxy) on the experimental policy configuration to reflect realistic governance practice."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "unsafe_decision_rate",
+      "unit": "proportion_of_total_decisions",
+      "description": "Fraction of decisions that, when evaluated against ex-post rules and labels (including risk appetite bounds and fairness constraints), are classified as unsafe or policy-violating (e.g., high-risk approvals, unfairly disparate outcomes)."
+    },
+    {
+      "name": "unsafe_decision_count",
+      "unit": "count",
+      "description": "Absolute number of unsafe or policy-violating decisions over a run, to quantify impact in high-volume scenarios."
+    },
+    {
+      "name": "unsafe_decision_severity_index",
+      "unit": "dimensionless_index",
+      "description": "Weighted index assigning higher weights to more severe potential impacts (e.g., large financial exposures, regulatory-sensitive segments), aggregated across unsafe decisions."
+    },
+    {
+      "name": "guardrail_activation_rate",
+      "unit": "events_per_1k_requests",
+      "description": "Frequency with which any guardrail (policy block, oversight escalation, rate limit, circuit breaker, or kill switch) changes the default action path per 1,000 requests."
+    },
+    {
+      "name": "guardrail_true_positive_rate",
+      "unit": "proportion",
+      "description": "Among guardrail activations, the proportion that correspond to actual unsafe or policy-violating situations, as assessed by offline labels or expert review."
+    },
+    {
+      "name": "guardrail_false_positive_rate",
+      "unit": "proportion",
+      "description": "Among guardrail activations, the proportion that correspond to cases later assessed as acceptable per policy and risk appetite (i.e., over-conservative blocks or escalations)."
+    },
+    {
+      "name": "decision_throughput",
+      "unit": "decisions_per_second",
+      "description": "Sustained rate of successful decisions processed under each workload, measured at the Action Engine, to detect performance impacts of guardrails."
+    },
+    {
+      "name": "p95_end_to_end_latency",
+      "unit": "milliseconds",
+      "description": "95th percentile time from request receipt at the gateway to final action determination, including any oversight or guardrail checks."
+    },
+    {
+      "name": "p99_end_to_end_latency",
+      "unit": "milliseconds",
+      "description": "99th percentile end-to-end latency, particularly relevant under stress workloads such as WL4."
+    },
+    {
+      "name": "circuit_breaker_trip_count",
+      "unit": "events_per_run",
+      "description": "Number of times circuit breakers open per run, indicating service protection activations under stress or anomaly conditions."
+    },
+    {
+      "name": "rate_limiter_block_count",
+      "unit": "events_per_run",
+      "description": "Number of requests blocked or deferred by rate limiters per run, segmented by client identity, to detect runaway automation or abuse."
+    },
+    {
+      "name": "time_to_kill_switch_activation",
+      "unit": "seconds",
+      "description": "Elapsed time between the first observable unsafe spike (defined via offline detection rules) and kill-switch activation in WL5 (or WL4 if automated triggers are used)."
+    },
+    {
+      "name": "time_to_safe_state_after_kill_switch",
+      "unit": "seconds",
+      "description": "Elapsed time from kill-switch activation to the point where 99%+ of new incoming requests are routed to safe fallback or manual review paths."
+    },
+    {
+      "name": "audit_trace_completeness_rate",
+      "unit": "proportion",
+      "description": "Proportion of sampled decisions for which a complete, reconstructable audit trail exists (who/what/when/why, including policy version and oversight mode)."
+    },
+    {
+      "name": "audit_integrity_check_pass_rate",
+      "unit": "proportion",
+      "description": "Fraction of log segments and hash chains that pass integrity verification in tamper-evidence checks."
+    },
+    {
+      "name": "human_review_load",
+      "unit": "decisions_reviewed_per_hour",
+      "description": "Number of decisions routed to human reviewers per hour under each workload, indicating operational burden of human-in/on-the-loop oversight."
+    },
+    {
+      "name": "human_override_rate",
+      "unit": "proportion",
+      "description": "Fraction of human-reviewed cases where humans override the model recommendation, segmented by workload and risk band, as an indicator of model-guardrail calibration quality."
+    },
+    {
+      "name": "policy_violation_block_rate",
+      "unit": "proportion_of_violation_attempts_blocked",
+      "description": "In WL3, proportion of deliberately policy-violating requests blocked or escalated by the treatment environment versus baseline."
+    },
+    {
+      "name": "vendor_endpoint_attribution_coverage",
+      "unit": "proportion",
+      "description": "Proportion of decisions for which vendor or third-party endpoint attribution is correctly recorded and reconstructable, supporting Section 8.7 expectations."
+    }
+  ],
+  "success_criteria": {
+    "primary": [
+      {
+        "description": "Material reduction in unsafe or policy-violating decisions under stress workloads with limited impact on normal operations.",
+        "conditions": [
+          "Under WL2 and WL4, treatment environment achieves at least a 70% reduction in unsafe_decision_rate relative to baseline, with 95% confidence intervals not overlapping baseline rates, based on multiple repeated runs.",
+          "Under WL1, treatment decision_throughput is at least 90% of baseline and p95_end_to_end_latency does not exceed baseline by more than 50% (absolute cap configurable) for the same workload."
+        ]
+      }
+    ],
+    "secondary": [
+      {
+        "description": "Effective and targeted guardrail activations.",
+        "conditions": [
+          "Under WL3, policy_violation_block_rate in treatment exceeds 95%, while guardrail_false_positive_rate remains below 10% on benign traffic.",
+          "Under WL4, circuit_breaker_trip_count and rate_limiter_block_count in treatment are significantly higher than baseline (which may have zero by design), accompanied by at least a 60% reduction in unsafe_decision_severity_index."
+        ]
+      },
+      {
+        "description": "Operational viability of human oversight and kill-switch mechanisms.",
+        "conditions": [
+          "In WL5, time_to_kill_switch_activation (for scripted activation) is within 5 seconds of scheduled trigger time, and time_to_safe_state_after_kill_switch is under 30 seconds for the configured environment.",
+          "Across WL2\u2013WL4, human_review_load in the treatment environment remains within pre-agreed operational capacity thresholds (e.g., < 150% of baseline review capacity), or overload conditions are clearly observable in metrics for tuning."
+        ]
+      },
+      {
+        "description": "Strong auditability and tamper-evidence.",
+        "conditions": [
+          "audit_trace_completeness_rate in treatment exceeds 99% across sampled decisions in all workloads.",
+          "audit_integrity_check_pass_rate in treatment is 100% across all log segments for the duration of experiments."
+        ]
+      }
+    ],
+    "interpretation_notes": [
+      "Success or failure of the experiment should be interpreted in context: exceeding latency or human-review thresholds may indicate overly aggressive guardrails requiring re-calibration rather than abandonment of the framework.",
+      "Executives should focus on trade-off surfaces (safety vs performance vs human workload) rather than absolute thresholds alone when deciding on production configurations."
+    ]
+  },
+  "failure_modes": [
+    {
+      "name": "overly_conservative_controls",
+      "description": "Guardrails, especially policy blocks and oversight escalation rules, cause high guardrail_false_positive_rate and unsustainable human_review_load, degrading customer experience and operations.",
+      "detection": [
+        "Monitoring guardrail_false_positive_rate and human_review_load under WL1 and WL2.",
+        "Observing significant drops in decision_throughput and spikes in p99_end_to_end_latency compared with baseline."
+      ],
+      "mitigation": [
+        "Adjust policy thresholds and oversight routing parameters iteratively, guided by recorded metrics and risk appetite statements.",
+        "Introduce risk-sensitive batching or sampling for human review (e.g., review a subset of low-risk decisions) while maintaining strong coverage for high-risk cases."
+      ]
+    },
+    {
+      "name": "insufficient_coverage_of_failure_modes",
+      "description": "The implemented guardrails do not adequately capture certain types of unsafe behaviors (e.g., subtle fairness harms, complex feedback loops), so unsafe_decision_rate remains high under some workloads.",
+      "detection": [
+        "Comparing unsafe_decision_rate and unsafe_decision_severity_index between baseline and treatment; observing modest or no improvement in some segments.",
+        "Identifying clusters of unsafe decisions in post-hoc analysis that did not trigger any guardrail activation."
+      ],
+      "mitigation": [
+        "Extend policy and control engine rules to incorporate additional risk signals (e.g., deeper fairness checks, multi-step sequence patterns).",
+        "Integrate signals from the Chapter 6 metrics and Chapter 12 validation experiments to enrich guardrails with more nuanced indicators."
+      ]
+    },
+    {
+      "name": "control_bypass_or_misconfiguration",
+      "description": "Certain API routes, client identities, or actions are not covered by guardrails due to misconfiguration or code paths that bypass the control layers.",
+      "detection": [
+        "Cross-checking access logs vs control event logs to find decisions missing expected guardrail evaluations.",
+        "Running the control test harness focused on edge cases (e.g., new endpoints, newly onboarded vendors)."
+      ],
+      "mitigation": [
+        "Adopt configuration linting and static analysis checks that flag endpoints or code paths not routed through the Policy & Control Engine.",
+        "Enforce mandatory registration of new use-cases and clients in policy configuration as part of deployment pipelines."
+      ]
+    },
+    {
+      "name": "logging_or_audit_trail_failures",
+      "description": "Audit logs are missing, incomplete, or corrupted, undermining forensic and accountability objectives.",
+      "detection": [
+        "Periodic execution of audit integrity check scripts; drops in audit_trace_completeness_rate or audit_integrity_check_pass_rate.",
+        "Spot checks by an internal-audit-like process revealing missing context for sampled decisions."
+      ],
+      "mitigation": [
+        "Harden log storage mechanisms (e.g., replication, WORM settings), improve monitoring for logging subsystem errors.",
+        "Refine log schemas and client libraries to ensure all required fields are mandatory and validated at write-time."
+      ]
+    },
+    {
+      "name": "kill_switch_and_circuit_breaker_unreliability",
+      "description": "Kill switch or circuit breakers either fail to activate when needed or activate unexpectedly under benign conditions, causing either uncontrolled behavior or unnecessary outages.",
+      "detection": [
+        "Inconsistencies between scripted activation points in WL5 and observed time_to_kill_switch_activation or circuit_breaker_trip_count.",
+        "Unexpected breaker trips under WL1 (normal traffic) or missing trips during WL4 stress events."
+      ],
+      "mitigation": [
+        "Simplify activation logic and reduce dependencies; ensure kill switch paths are as direct as possible.",
+        "Tune threshold parameters and add hysteresis or debouncing mechanisms to avoid flapping under noisy conditions."
+      ]
+    },
+    {
+      "name": "vendor_and_third_party_coverage_gaps",
+      "description": "Decisions involving third-party or vendor models are not properly attributed or subject to the same guardrails as internal models.",
+      "detection": [
+        "Low vendor_endpoint_attribution_coverage in treatment.",
+        "Manual review of log samples showing missing vendor identifiers or control events for vendor-invoked paths."
+      ],
+      "mitigation": [
+        "Standardize integration interfaces such that all vendor calls are mediated via the same access & logging layer.",
+        "Require vendor attribution fields and control hooks as conditions in vendor contracts and technical onboarding."
+      ]
+    }
+  ],
+  "required_environment": {
+    "infrastructure": [
+      "Containerized execution environment (e.g., Docker + Kubernetes or Docker Compose) capable of deploying separate baseline and treatment services and associated dependencies.",
+      "Metrics collection and visualization stack (e.g., Prometheus + Grafana or similar) for gathering performance and guardrail metrics across services.",
+      "Centralized logging infrastructure (e.g., Elasticsearch/OpenSearch + Kibana, or a cloud-native log service) with support for structured JSON logs.",
+      "Cryptographic library support for hash chaining and integrity checks (e.g., SHA-256) in the logging/audit modules."
+    ],
+    "software_stack": [
+      "Backend language/runtime such as Python 3.10+ or Node.js 18+ (repository should fix versions) for implementing services and control logic.",
+      "ML framework compatible with the book\u2019s examples (e.g., scikit-learn, XGBoost, or PyTorch) for the AI Model Service.",
+      "HTTP API framework (e.g., FastAPI/Flask for Python, Express for Node) for the gateway and microservices.",
+      "Job runner or scheduler for workload generation (e.g., Python scripts with asyncio, Locust, or k6 for load testing)."
+    ],
+    "datasets": [
+      "Synthetic or anonymized tabular dataset mimicking a financial use-case (e.g., credit applications, payment transactions) with labeled outcomes and protected attributes for fairness checks.",
+      "Configuration for generating drifted and policy-violating variants of the base dataset (e.g., scripts that alter distributions, inject violations)."
+    ],
+    "security_and_compliance": [
+      "Non-production, sandbox environment with synthetic or fully anonymized data to avoid regulatory or privacy issues.",
+      "Configuration management via a version-controlled repository (e.g., Git) to capture all policy and control configurations for each experiment run."
+    ],
+    "human_oversight_emulation": [
+      "Either a simple web UI for human reviewers or a scripted 'virtual reviewer' that makes deterministic override decisions based on predefined logic, to ensure repeatability.",
+      "Role definitions and credentials for different user types (e.g., operator, reviewer, auditor) aligned with RBAC configuration."
+    ]
+  },
+  "run_instructions": [
+    "1. Checkout and Setup",
+    "1.1 Clone the repository (e.g., https://github.com/bookauthority/boardroom-blind-spots) and navigate to the experimental module path for Chapter 8 (e.g., /experiments/ch08_guardrails).",
+    "1.2 Install required tooling following the repo\u2019s README (e.g., Python environment, Docker, docker-compose or Kubernetes tooling, metrics stack dependencies).",
+    "1.3 Initialize configuration templates for baseline and treatment: copy example configuration files (e.g., config_baseline.yml and config_treatment.yml) and adjust environment-specific settings (ports, hostnames) without altering guardrail logic at this stage.",
+    "2. Deploy Baseline and Treatment Services",
+    "2.1 Build and start the baseline stack using the provided orchestration script (e.g., make run-baseline or docker-compose -f docker-compose.baseline.yml up). Ensure that:",
+    "     - AI Model Service is reachable at its designated endpoint.",
+    "     - Action Engine and thin gateway are running and have connectivity.",
+    "     - Logging and metrics exporters are active for baseline components.",
+    "2.2 Build and start the treatment stack (e.g., make run-treatment or docker-compose -f docker-compose.treatment.yml up). Confirm that:",
+    "     - Policy & Control Engine and Oversight Orchestrator are wired between the gateway and AI Model Service.",
+    "     - Runtime Control Layer (rate limiters, circuit breakers, kill switch) is enabled as per default treatment configs.",
+    "     - Access & Logging Layer and tamper-evident logging functions are active.",
+    "3. Configure Risk Appetite and Policies for Treatment",
+    "3.1 Open the policy configuration files for treatment (e.g., policy_risk_appetite.yml, policy_use_cases.yml, policy_ethics.yml).",
+    "3.2 Review their default values, which should be aligned with illustrative but realistic financial-institution risk appetites (e.g., auto-approval limits, fairness thresholds).",
+    "3.3 Optionally adjust thresholds and allowed use-cases within bounds recommended in comments, but record any changes and commit them with a tag referencing this experiment run.",
+    "3.4 Run configuration validation scripts (e.g., python validate_policies.py) to ensure internal consistency and successful loading of policies into the Policy & Control Engine.",
+    "4. Initialize Datasets and Workload Profiles",
+    "4.1 Generate or load the base dataset using provided scripts (e.g., python generate_base_dataset.py) to obtain training, validation, and test subsets.",
+    "4.2 Train or load the reference model using the training script (e.g., python train_model.py) and verify that the same model artifact is referenced by both baseline and treatment deployments.",
+    "4.3 Use workload-preparation scripts (e.g., python prepare_workload_inputs.py) to create input streams for WL1\u2013WL4, each with fixed random seeds and stored as deterministic sequences or generation parameters.",
+    "4.4 For WL5, define a schedule for kill-switch activation in a configuration file (e.g., wl5_schedule.yml), including manual and scripted activation times relative to workload start.",
+    "5. Run Workloads on Baseline",
+    "5.1 For each of WL1\u2013WL4, start the baseline workload runner (e.g., python run_workload.py --env baseline --workload WL1 --seed 1234).",
+    "5.2 Monitor the system during runs to ensure stability but do not intervene unless failures occur that prevent data collection.",
+    "5.3 After each run, archive relevant logs and metrics snapshots to a run-specific directory (e.g., results/baseline/WL1/run_001) including:",
+    "     - Raw logs from gateway, AI Model Service, and Action Engine.",
+    "     - Time-series metrics export (e.g., from Prometheus).",
+    "     - Metadata file with configuration commit hashes and workload parameters.",
+    "5.4 Optionally repeat each workload multiple times (e.g., 3\u20135 runs) to enable statistical comparison, varying only the seed when explicitly allowed in run parameters.",
+    "6. Run Workloads on Treatment",
+    "6.1 Repeat step 5 for the treatment environment, including WL1\u2013WL4 with the same seeds and parameters (e.g., python run_workload.py --env treatment --workload WL1 --seed 1234).",
+    "6.2 For WL5, run the dedicated workload script (e.g., python run_workload.py --env treatment --workload WL5 --schedule wl5_schedule.yml) that triggers manual and scripted kill-switch activations at defined times.",
+    "6.3 During WL5, if using a human-operated kill switch, follow the prescribed scenario script and record activation times in an operations log file.",
+    "6.4 Archive logs, metrics, and configuration metadata for each treatment run as in step 5, using environment- and workload-specific directories.",
+    "7. Compute Metrics",
+    "7.1 Execute the metrics computation pipeline (e.g., python compute_metrics.py --env baseline --workload WL1 --runs all) for each workload and environment:",
+    "     - Map raw events to decisions and associate them with any guardrail activations and policy context.",
+    "     - Apply ex-post safety and policy evaluation logic using labels and risk appetite statements to compute unsafe_decision_rate, unsafe_decision_count, and unsafe_decision_severity_index.",
+    "     - Aggregate performance metrics (decision_throughput, p95/p99 latencies) and control metrics (circuit_breaker_trip_count, rate_limiter_block_count, etc.).",
+    "7.2 Run the same metrics pipeline for the treatment environment by changing the --env parameter.",
+    "7.3 Store computed metrics for each (env, workload, run) tuple in structured files (e.g., JSON or CSV) under a central results directory for subsequent analysis.",
+    "8. Analyze Baseline vs Treatment",
+    "8.1 Use analysis scripts or notebooks (e.g., jupyter notebook analyze_results.ipynb) to:",
+    "     - Compare baseline and treatment metrics side-by-side for each workload.",
+    "     - Calculate relative changes (percentage improvement or degradation) in unsafe_decision_rate, throughput, and latency.",
+    "     - Visualize guardrail activations over time and under different workloads.",
+    "8.2 Evaluate the success_criteria by checking whether observed metrics meet or exceed the defined thresholds, using repeated-run averages and confidence intervals where appropriate.",
+    "8.3 Document any trade-offs observed (e.g., increased human_review_load vs reduced unsafe_decision_rate) in a narrative summary suitable for executive audiences.",
+    "9. Validate Logging and Audit Trails",
+    "9.1 Run integrity-check scripts (e.g., python verify_audit_chain.py --env treatment) to compute audit_integrity_check_pass_rate and identify any inconsistencies in hash-chained logs.",
+    "9.2 Execute audit replay tools (e.g., python reconstruct_decisions.py --sample-size 1000) to measure audit_trace_completeness_rate and verify that sampled decisions can be fully reconstructed.",
+    "9.3 Summarize findings in internal-audit-style reports that highlight any gaps or anomalies discovered during verification.",
+    "10. Archive and Tag Experiment",
+    "10.1 Tag the repository with an experiment identifier (e.g., git tag exp-8-guardrails-v1) that corresponds to the experiment_id, including configuration and code states used.",
+    "10.2 Store a final experiment manifest file (e.g., experiment_manifest.json) capturing:",
+    "     - experiment_id and date/time of runs.",
+    "     - commit hashes for code and configuration repositories.",
+    "     - list of workloads and number of runs completed.",
+    "     - paths to metrics files and analysis outputs.",
+    "10.3 Optionally publish summarised, anonymized results (without actual outcomes or confidential data) for organisational learning and cross-team sharing."
+  ],
+  "evidence_schema": {
+    "type": "object",
+    "required": [
+      "experiment_id",
+      "environment",
+      "code_commit_hash",
+      "config_commit_hash",
+      "workloads",
+      "metrics",
+      "audit_checks",
+      "control_events_summary",
+      "interpretation_notes"
+    ],
+    "properties": {
+      "experiment_id": {
+        "type": "string",
+        "description": "Identifier matching the experiment_id field of this specification."
+      },
+      "environment": {
+        "type": "string",
+        "enum": [
+          "baseline",
+          "treatment"
+        ],
+        "description": "Indicates whether the evidence refers to the baseline or treatment environment."
+      },
+      "code_commit_hash": {
+        "type": "string",
+        "description": "Git commit hash of the codebase used for this run."
+      },
+      "config_commit_hash": {
+        "type": "string",
+        "description": "Git commit hash or version identifier of the configuration/policy repository used for this run."
+      },
+      "run_timestamp_utc": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Timestamp when the main workload run started."
+      },
+      "workloads": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "runs",
+            "workload_seed",
+            "parameters"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "enum": [
+                "WL1_normal_traffic",
+                "WL2_data_drift_and_model_stress",
+                "WL3_policy_violation_and_misuse_attempts",
+                "WL4_adverse_event_and_feedback_loop_spike",
+                "WL5_kill_switch_operational_test"
+              ]
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of repeated runs executed for this workload in this environment."
+            },
+            "workload_seed": {
+              "type": "integer",
+              "description": "Base random seed used to generate deterministic workload inputs for reproducibility."
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Key workload parameters actually used in the run (e.g., request_rate, duration, drift_patterns)."
+            }
+          }
+        }
+      },
+      "metrics": {
+        "type": "object",
+        "description": "Aggregated metrics for each workload, with possible inclusion of run-level details.",
+        "patternProperties": {
+          "^WL[1-5]_.*": {
+            "type": "object",
+            "properties": {
+              "aggregate_over_runs": {
+                "type": "object",
+                "properties": {
+                  "unsafe_decision_rate": {
+                    "type": "number"
+                  },
+                  "unsafe_decision_count": {
+                    "type": "number"
+                  },
+                  "unsafe_decision_severity_index": {
+                    "type": "number"
+                  },
+                  "guardrail_activation_rate": {
+                    "type": "number"
+                  },
+                  "guardrail_true_positive_rate": {
+                    "type": "number"
+                  },
+                  "guardrail_false_positive_rate": {
+                    "type": "number"
+                  },
+                  "decision_throughput": {
+                    "type": "number"
+                  },
+                  "p95_end_to_end_latency": {
+                    "type": "number"
+                  },
+                  "p99_end_to_end_latency": {
+                    "type": "number"
+                  },
+                  "circuit_breaker_trip_count": {
+                    "type": "number"
+                  },
+                  "rate_limiter_block_count": {
+                    "type": "number"
+                  },
+                  "time_to_kill_switch_activation": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "time_to_safe_state_after_kill_switch": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "audit_trace_completeness_rate": {
+                    "type": "number"
+                  },
+                  "audit_integrity_check_pass_rate": {
+                    "type": "number"
+                  },
+                  "human_review_load": {
+                    "type": "number"
+                  },
+                  "human_override_rate": {
+                    "type": "number"
+                  },
+                  "policy_violation_block_rate": {
+                    "type": "number"
+                  },
+                  "vendor_endpoint_attribution_coverage": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "per_run_details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "unsafe_decision_rate": {
+                      "type": "number"
+                    },
+                    "decision_throughput": {
+                      "type": "number"
+                    },
+                    "p95_end_to_end_latency": {
+                      "type": "number"
+                    },
+                    "p99_end_to_end_latency": {
+                      "type": "number"
+                    },
+                    "guardrail_activation_rate": {
+                      "type": "number"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "audit_checks": {
+        "type": "object",
+        "required": [
+          "audit_trace_completeness_rate",
+          "audit_integrity_check_pass_rate",
+          "sample_size"
+        ],
+        "properties": {
+          "audit_trace_completeness_rate": {
+            "type": "number",
+            "description": "Overall completeness rate across sampled decisions."
+          },
+          "audit_integrity_check_pass_rate": {
+            "type": "number",
+            "description": "Proportion of log segments passing integrity checks."
+          },
+          "sample_size": {
+            "type": "integer",
+            "description": "Number of decisions sampled for audit reconstruction."
+          },
+          "issues_found": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descriptions or identifiers of any audit issues discovered."
+          }
+        }
+      },
+      "control_events_summary": {
+        "type": "object",
+        "description": "Summary of notable control activations and anomalies observed during runs.",
+        "properties": {
+          "kill_switch_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "workload": {
+                  "type": "string"
+                },
+                "run_id": {
+                  "type": "string"
+                },
+                "activation_time_relative_sec": {
+                  "type": "number"
+                },
+                "reason_code": {
+                  "type": "string"
+                },
+                "initiated_by": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "circuit_breaker_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "workload": {
+                  "type": "string"
+                },
+                "run_id": {
+                  "type": "string"
+                },
+                "endpoint": {
+                  "type": "string"
+                },
+                "open_time_utc": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "duration_sec": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "rate_limiter_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "workload": {
+                  "type": "string"
+                },
+                "run_id": {
+                  "type": "string"
+                },
+                "client_id": {
+                  "type": "string"
+                },
+                "blocked_requests": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "interpretation_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional narrative notes summarizing key observations, trade-offs, and any deviations from the planned experiment procedure."
+      }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,432 @@
+{
+  "experiment_id": "ch3-failure-modes-of-autonomous-ai-in-finance",
+  "hypothesis": "For a representative set of financial AI use-cases, each key failure mode in the Chapter 3 taxonomy (drift/regime change, misaligned optimization, feedback loops, adversarial manipulation, latent bias, emergent behavior, and cascades) can be reliably induced and quantified via small-scale simulations. Under controlled conditions, these experiments will show (a) distinct, diagnosable signatures in model behavior and (b) traceable impacts on business-relevant proxies (losses, misallocations, unfair outcomes, regulatory breaches), thereby validating the taxonomy as both complete enough and operationally meaningful for governance purposes.",
+  "baseline": {
+    "description": "For each failure-mode vignette, the baseline is a simple, well-behaved model or system operating in a stable, well-specified environment that reflects a stylized financial-services task. Baselines are trained and evaluated on i.i.d. data from a stationary distribution (for predictive models), have reward functions well-aligned with stated business objectives (for RL/control examples), are used passively without market impact (for feedback loop examples), receive non-adversarial, correctly distributed inputs (for adversarial examples), run without injected bias or protected attributes (for fairness examples), and are composed of single, non-interacting components (for cascade/emergence examples). Business and risk metrics remain within acceptable thresholds by design. Each treatment then perturbs one dimension to induce a specific failure mode, holding everything else fixed.",
+    "scenarios": {
+      "3.2_drift_and_regime_change": "Baseline: A logistic regression credit-default classifier trained on a synthetic but realistic portfolio of consumer loans (features such as income, DTI, utilization, employment status, macro indicators). Training, validation, and test data are drawn from the same stationary distribution. Model performance (AUC, calibration) is stable over multiple rolling windows. Decisions (approve/decline) and associated expected loss are consistent over time.",
+      "3.3_misaligned_optimization_rl": "Baseline: A contextual bandit or simple episodic RL agent that sets promotional credit card limits for customers. The reward is defined as risk-adjusted profit (interest income minus expected loss and funding cost). The agent is trained on an environment where the reward signal accurately reflects the bank's true objective, and there are no hidden incentives encouraging short-term volume at the expense of long-term losses.",
+      "3.4_feedback_loops_reflexivity": "Baseline: A price-forecasting model for a synthetic asset that is used only for internal reporting (no trading). The model predicts next-period returns based on lagged prices and volatility; forecasts are not fed back into the market. Asset returns follow a stationary stochastic process (e.g., AR(1) + noise). The model has no influence on prices.",
+      "3.5_adversarial_manipulation": "Baseline: A gradient-boosted fraud detection classifier trained on synthetic card-transaction data with known fraud labels. Incoming transactions are generated from the same distribution, with fraudsters not reacting to model decisions. Input features are clean, without prompt injection (for any LLM front-end) or poisoning in the training data. Model maintains high precision/recall, and fraud loss is low.",
+      "3.6_bias_fairness_conduct_risk": "Baseline: A credit approval model trained on a synthetic dataset where protected attributes (e.g., gender, race proxy) are either removed or genuinely independent of default risk. The data-generation process is configured so that default probabilities are equal across groups conditional on risk features, and sampling is balanced. The model displays comparable approval rates and error rates across protected groups, within pre-defined fairness thresholds.",
+      "3.7_emergent_behaviour_large_models": "Baseline: A modest-size sequence model (e.g., small transformer) or rules-based agent used to generate customer service responses for banking queries, constrained to a narrow domain and limited tool access. Prompts are simple, and capabilities are limited to FAQ-style lookups with deterministic behavior and no tool-calling or self-initiated actions.",
+      "3.8_failure_cascade": "Baseline: A simple risk pipeline composed of three independent components: (1) a PD (probability of default) model, (2) an LGD (loss given default) model, and (3) a portfolio aggregation step that computes expected loss and a basic capital buffer. All components operate on clean, stationary data with correct parameterization. Small noise in one component does not push overall expected loss or capital ratios outside tolerance levels."
+    }
+  },
+  "treatment": {
+    "description": "Each treatment scenario introduces a controlled perturbation aligned with a specific failure mode in the taxonomy, while keeping the underlying task and infrastructure constant. Treatments are crafted so that: (a) they are reproducible and parameterizable; (b) they can be isolated (one primary failure mode at a time) and then combined for cascade analysis; and (c) they produce directly measurable changes in technical metrics and business/regulatory proxies compared with baseline.",
+    "scenarios": {
+      "3.2_drift_and_regime_change": {
+        "manipulation": "Introduce sequential distribution shifts in the input data and target relationship to emulate gradual drift and sudden regime change. For drift, slowly shift key feature distributions (e.g., income levels, utilization ratios, unemployment rate) over simulated time, and alter the conditional default probability function slightly each period. For regime change, introduce a sudden macro shock (e.g., recession), sharply increasing default rates in specific segments. The model is not retrained initially, then retrained under different policies (lagged, naive, or robust) to analyze impacts.",
+        "variants": [
+          "Gradual covariate drift only (features change, label relationship stable).",
+          "Gradual concept drift (label relationship changes slowly, features stable).",
+          "Sudden regime shift (both features and label relationship change at a specific time)."
+        ]
+      },
+      "3.3_misaligned_optimization_rl": {
+        "manipulation": "Redefine the reward for the RL agent to partially or fully misalign with long-term risk-adjusted profit. Examples: (1) reward is monthly approved volume regardless of subsequent losses; (2) reward includes a strong positive term for short-term fee income but discounts long-run default costs; (3) impose a quota or penalty mechanism that encourages the agent to push limits to borderline customers. The simulated environment tracks long-horizon defaults and charge-offs, which are not fully reflected in the reward. Explore how agents learn 'shortcuts' that exploit the reward function.",
+        "variants": [
+          "Short-term revenue reward without loss penalty.",
+          "Reward with incomplete loss observation window (truncated credit cycles).",
+          "Reward with proxy metric (e.g., application conversion rate) instead of true profit."
+        ]
+      },
+      "3.4_feedback_loops_reflexivity": {
+        "manipulation": "Allow the model's outputs to influence the environment, simulating a trading strategy that places buy/sell orders based on its own forecasts. Market prices are generated by combining exogenous fundamental returns with an endogenous component proportional to aggregate model-driven orders. The penetration rate of the strategy (fraction of market volume driven by the model) is parameterized. As penetration increases, model-induced feedback loops can create trend amplification, volatility spikes, and breakdown of original forecast relationships.",
+        "variants": [
+          "Low market impact (model trades represent small fraction of volume).",
+          "Medium impact with multiple identical agents using the same model.",
+          "High impact plus lagged reaction from other market participants (e.g., momentum traders reacting to model-driven flows)."
+        ]
+      },
+      "3.5_adversarial_manipulation": {
+        "manipulation": "Introduce adversarial behavior at three layers: (1) test-time evasion: fraudsters adapt transaction features to sit just below decision thresholds; (2) training-time poisoning: a small fraction of labeled data is manipulated to mislead the model (e.g., fraudulent transactions labeled as legitimate for a specific merchant or geography); (3) prompt-level attacks on an LLM-based customer interface that feeds structured instructions into downstream decision models (prompt injection). For each, craft attack strategies with tunable strength and measure resulting degradation in fraud detection and/or integrity of downstream decisions.",
+        "variants": [
+          "Gradient-based adversarial perturbations on numeric features for an offline test set.",
+          "Structured rule-based attacker that iteratively learns evasion strategies from model feedback.",
+          "Data poisoning during retraining cycles, targeting a chosen subgroup (e.g., a merchant category).",
+          "Prompt injection templates that cause the LLM to override system instructions and forward malicious actions to downstream tools."
+        ]
+      },
+      "3.6_bias_fairness_conduct_risk": {
+        "manipulation": "Alter the synthetic data-generation process and modeling pipeline to introduce multiple sources of bias: (1) historical bias: protected groups start with disadvantaged distributions in key features (e.g., income, wealth levels) tied to structural inequality; (2) label bias: default probabilities are distorted for certain groups due to historical discrimination (e.g., higher defaults not explained by risk features); (3) sample bias: underrepresentation of a minority group in training data; (4) measurement bias: proxy variables that correlate with protected status are included without explicit fairness controls. Train models without mitigating techniques and quantify fairness breakdowns.",
+        "variants": [
+          "Pure historical feature bias with equal true risk across groups.",
+          "Label noise/bias applied disproportionately to one group.",
+          "Severe under-sampling of a minority group in training vs test.",
+          "Inclusion of a strong proxy variable (e.g., postcode) that drives disparities."
+        ]
+      },
+      "3.7_emergent_behaviour_large_models": {
+        "manipulation": "Progressively increase model capacity and action space, and introduce tool access or autonomy loops for an LLM-based banking assistant or decision-support agent. For example: move from a small transformer with constrained outputs to a larger model with chain-of-thought and tool-calling abilities (e.g., ability to query internal systems, draft emails, or propose parameter changes to pricing models). Provide prompts that are ambiguous or slightly out-of-scope to observe unanticipated behaviors such as chain-of-action planning, policy workarounds, or creative strategies not explicitly programmed. Autonomy level is parameterized (e.g., read-only, propose-only, execute-with-threshold).",
+        "variants": [
+          "Model scale-up: compare behaviors across small vs larger models on identical prompts.",
+          "Increased tool access: from FAQ-only to data-query tools and configuration proposals.",
+          "Longer context windows enabling cross-session pattern recognition and self-referential behavior."
+        ]
+      },
+      "3.8_failure_cascade": {
+        "manipulation": "Combine multiple small perturbations from previous scenarios in a multi-component pipeline: minor drift in the PD model, slight bias in LGD estimation for certain asset classes, small but systematic data-quality issues (e.g., delayed feeds), and a naive portfolio aggregation step that underestimates tail risk. Additionally, connect the risk engine outputs to a downstream capital-allocation or limit-setting module, which in turn influences future portfolio composition (feedback). Individually, each perturbation lies within conventional model risk tolerances, but in aggregate they push expected loss and capital adequacy outside safe bounds under stress.",
+        "variants": [
+          "Two-component cascade: PD drift + mis-specified LGD under a mild macro shock.",
+          "Three-component cascade: PD drift + LGD bias + aggregation error in VaR/tail metrics.",
+          "Full pipeline cascade with feedback to business decisions (e.g., limit increases where risk is underestimated), examined over multiple time steps."
+        ]
+      }
+    }
+  },
+  "workloads": [
+    {
+      "id": "wl-3.2-drift-credit-risk",
+      "section": "3.2 Data and Environment Shifts: Drift, Regime Change, and Market Shocks",
+      "task": "Train and evaluate a binary credit-default classifier on synthetic loan data under stationary conditions, then replay the model over a time-indexed stream with controlled covariate/concept drift and regime shifts. Compare performance, calibration, and portfolio-level expected loss vs baseline.",
+      "baseline_config": "Use a logistic regression or simple tree-based model (e.g., XGBoost with conservative hyperparameters) trained on 100k synthetic loans where feature distributions and default-generating process are stationary. Evaluate AUC, Brier score, and expected loss over an i.i.d. test set and rolling windows drawn from the same distribution.",
+      "treatment_config": "Generate a multi-period (e.g., 60-month) data stream. Apply scripted parameter changes over time to simulate: (a) gradual shifts in distribution of key features; (b) shifts in the logistic link between features and default; (c) a discrete macro shock at a known time. Freeze the baseline model and replay it over this stream; then retrain at different frequencies with and without drift-detection mechanisms.",
+      "inputs": "Synthetic tabular dataset with features representing borrower and macro characteristics, a time index, and default labels. Drift parameters (means, variances, coefficients) specified in a config file.",
+      "outputs": "Rolling-window metrics and plots (AUC, calibration curves, expected loss deviation, approval-rate changes) under different drift and retraining policies."
+    },
+    {
+      "id": "wl-3.3-rl-credit-limits",
+      "section": "3.3 Optimization Gone Wrong: Reinforcement Learning, Incentives, and Dangerous Shortcuts",
+      "task": "Simulate an RL agent allocating credit limits for customers where the environment tracks long-term default behavior, but the agent's reward is mis-specified to emphasize short-term volume or revenue. Observe how learned policies diverge from the true risk-optimal policy.",
+      "baseline_config": "Contextual bandit or simple RL with reward equal to risk-adjusted long-term profit per customer episode. Environment exposes full loss outcomes to the agent over the episode, and training spans enough simulated periods to converge to a stable, prudent policy.",
+      "treatment_config": "Change reward to emphasize short-term objectives (e.g., approvals or collected fees within a short horizon). Optionally truncate the loss observation window so that late defaults are invisible to the agent. Train the same algorithm with identical hyperparameters and compare resulting policies and portfolio performance.",
+      "inputs": "Synthetic population of customers with latent credit quality, features, and stochastic default processes. A configurable reward function that can be toggled between fully aligned and misaligned variants.",
+      "outputs": "Policy summaries (average credit limits by risk tier), time-series of cumulative reward vs true profit, default and charge-off rates, and distribution of losses by customer segment."
+    },
+    {
+      "id": "wl-3.4-feedback-loop-trading",
+      "section": "3.4 Feedback Loops and Reflexivity: When Models Move the Markets They Predict",
+      "task": "Model a stylized market where an AI-driven trading strategy both predicts and affects asset prices. Vary the fraction of market volume driven by the strategy to observe transitions from benign to destabilizing feedback.",
+      "baseline_config": "AR(1)+noise price process with a forecasting model that observes prices but does not trade. Evaluate prediction performance and volatility under purely exogenous dynamics.",
+      "treatment_config": "Activate a trading strategy that takes positions based on forecasted returns. Embed its order flow into the price formation mechanism as a function of position size and market depth. Run simulations across low/medium/high penetration rates and with/without additional reactive agents.",
+      "inputs": "Initial price and volatility parameters, AR(1) coefficients, model specification for forecasts, trading-rule parameters (leverage, risk limits), and a market-impact function.",
+      "outputs": "Time-series of prices, realized volatility, forecast errors, trade P&L, and measures of instability (e.g., frequency of large jumps, divergence from fundamentals)."
+    },
+    {
+      "id": "wl-3.5-adversarial-fraud-and-llm",
+      "section": "3.5 Adversarial and Manipulative Inputs: Gaming, Prompt Injection, and Data Poisoning",
+      "task": "Stress a fraud detection pipeline and an LLM front-end with adversarial examples. For the classifier, craft evasion and poisoning attacks; for the LLM interface, craft prompt injection examples that attempt to override system instructions or cause unsafe downstream actions.",
+      "baseline_config": "Fraud classifier trained on clean synthetic transaction data with stable fraud patterns; LLM or text model with strict system prompts and no adversarial content in the training or evaluation set.",
+      "treatment_config": "Generate and apply adversarial perturbations to features; inject mislabeled examples during retraining; and prompt the LLM with specially crafted instructions that conflict with system messages (e.g., trying to induce it to approve obviously risky actions).",
+      "inputs": "Synthetic transaction dataset (features, labels), attack-generation scripts for evasion and poisoning, and a set of benign and adversarial prompts for the LLM, including tools access configuration if applicable.",
+      "outputs": "Confusion matrices, ROC curves, and loss metrics before and after attacks; examples of successful adversarial transactions or prompts; classification of prompt-injection success modes."
+    },
+    {
+      "id": "wl-3.6-fairness-credit-approvals",
+      "section": "3.6 Latent Bias, Fairness Breakdowns, and Conduct Risk",
+      "task": "Induce different types of bias in a credit approval model and quantify the impact on group-level outcomes and standard fairness metrics, linking these to conduct and regulatory risk indicators.",
+      "baseline_config": "Fair synthetic dataset with balanced representation and equal true risk across groups; model trained without protected attributes or strong proxies. Verify that fairness metrics (e.g., demographic parity difference, equalized odds gap) are within a pre-defined tolerance.",
+      "treatment_config": "Adjust data-generation and sampling to embed structural, label, and sampling biases, and include proxy variables. Retrain the same family of models, optionally performing naive hyperparameter tuning that may exacerbate disparities. Evaluate fairness metrics and scenario-based impacts (e.g., excess denials for a protected group).",
+      "inputs": "Data-generation scripts with toggles for each type of bias, model training notebooks, and fairness metric calculators.",
+      "outputs": "Fairness metric tables, approval-rate and error-rate splits by group, and estimated financial and legal risk proxies (e.g., counts of potentially discriminatory decisions)."
+    },
+    {
+      "id": "wl-3.7-emergent-llm-agent-behaviour",
+      "section": "3.7 Emergent Behaviour in Large Models: Unanticipated Capabilities and Interactions",
+      "task": "Compare behavior of smaller vs larger language models (or constrained vs more autonomous agents) on the same set of banking and governance prompts, focusing on unanticipated capabilities, hidden strategies, and interaction patterns.",
+      "baseline_config": "Smaller/constrained model with narrow, rule-like responses, limited context window, no tool access, and deterministic decoding. Evaluate responses on a curated set of prompts and score alignment with intended behavior.",
+      "treatment_config": "Larger/less constrained model with expanded context, chain-of-thought, and optional tool access (e.g., retrieving example portfolio metrics, drafting parameter-change requests). Run the same prompts plus longer multi-turn dialogues, logging deviations such as creative policy workarounds, aggressive optimization suggestions, or tool-use cascades.",
+      "inputs": "Prompt set representing realistic executive, customer, and internal-operations queries; configuration files for models (size, temperature, tools).",
+      "outputs": "Response logs, qualitative and quantitative annotations (e.g., frequency of out-of-scope actions, policy-violating suggestions), and simple capability emergence scores aligned to governance concerns."
+    },
+    {
+      "id": "wl-3.8-multi-stage-failure-cascade",
+      "section": "3.8 The Failure Cascade: How Multiple Minor Issues Become a Major Event",
+      "task": "Compose a multi-model pipeline (PD, LGD, aggregation, limit-setting) and introduce multiple small perturbations (drift, bias, aggregation simplifications, data delays) to show how these accumulate into large portfolio and capital misestimations under stress.",
+      "baseline_config": "All components calibrated correctly and run on clean, stationary data. Portfolio-level expected loss and capital buffers remain within governance thresholds under baseline and mild-stress scenarios.",
+      "treatment_config": "Apply small parameter mis-specifications in PD and LGD models, mild data-latency issues, and aggregation shortcuts that underestimate tail risk. Feed the outputs into a simplistic capital/limit engine, then iterate the portfolio over several time steps where underestimated risk leads to riskier book composition.",
+      "inputs": "Component models or simple parametric functions for PD, LGD, EAD, portfolio aggregation; portfolio composition data; stress scenario definitions.",
+      "outputs": "Time-series of true vs estimated expected loss, capital ratios, and limit utilization; decomposition showing contribution of each minor issue to the overall error; indicators of when governance thresholds would have been breached."
+    }
+  ],
+  "controls": {
+    "data_controls": [
+      "Use fixed random seeds for synthetic data generation and model initialization to ensure reproducibility.",
+      "Document all data-generation parameters (means, variances, correlation structure, default probabilities, group proportions) in configuration files versioned in the repository.",
+      "Ensure clear separation of training, validation, and test (or out-of-time) sets for predictive models; keep a clean, untouched test set for baseline comparisons.",
+      "For time-series experiments, enforce chronological split between training and evaluation windows to avoid leakage.",
+      "For fairness and bias experiments, generate a reference 'ideal fairness' dataset to verify baseline implementations before inducing bias."
+    ],
+    "experimental_controls": [
+      "Hold model class and architecture constant between baseline and treatment within each workload (e.g., same logistic regression, same boosting algorithm, same RL algorithm) so effects can be attributed to environmental or reward changes.",
+      "Keep hyperparameters identical between baseline and treatment runs except where explicitly part of the scenario (e.g., retraining cadence in drift scenarios).",
+      "Run multiple random seeds (e.g., 5\u201310) for stochastic algorithms such as RL and record distributions over outcomes to distinguish structural effects from noise.",
+      "For LLM/agent experiments, fix decoding parameters (temperature, top-p) across baseline and treatment where possible; if temperature must differ, record and justify.",
+      "Isolate one primary failure mechanism at a time when first demonstrating each scenario; then create combined runs explicitly labeled as 'cascade' variants."
+    ],
+    "governance_controls": [
+      "Map each workload to a hypothetical financial use-case (credit underwriting, market making, fraud detection) and define governance thresholds for acceptable behavior (e.g., maximum tolerated increase in default rate or fairness disparity).",
+      "Ensure that any use of real-world regulatory thresholds (e.g., fairness or capital metrics) is clearly annotated as illustrative and not institution-specific guidance.",
+      "Include clear warnings in notebooks that experiments are synthetic and for educational purposes, not production-risk models."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "auc_roc",
+      "unit": "dimensionless (0-1)",
+      "description": "Area under the ROC curve for binary classifiers (e.g., credit default, fraud detection) measured on holdout or rolling windows."
+    },
+    {
+      "name": "brier_score",
+      "unit": "probability^2",
+      "description": "Mean squared error between predicted probabilities and observed binary outcomes, used to assess calibration integrity, especially under drift."
+    },
+    {
+      "name": "expected_loss",
+      "unit": "monetary_units",
+      "description": "Portfolio-level expected credit or fraud loss (e.g., sum over PD*LGD*EAD for credit, fraud_amount*fraud_prob for fraud) per time period."
+    },
+    {
+      "name": "default_rate",
+      "unit": "percentage",
+      "description": "Observed frequency of default events relative to the exposure count, overall and segmented by risk bands or groups."
+    },
+    {
+      "name": "rl_cumulative_true_profit",
+      "unit": "monetary_units",
+      "description": "Cumulative realized long-term profit (revenues minus realized losses and funding costs) in RL experiments, computed from environment ground-truth rather than the agent's reward function."
+    },
+    {
+      "name": "rl_cumulative_reward",
+      "unit": "dimensionless or monetary proxy",
+      "description": "Cumulative reward as perceived by the RL agent, used to quantify divergence between optimized reward and true profit."
+    },
+    {
+      "name": "market_volatility",
+      "unit": "percentage (e.g., annualized standard deviation)",
+      "description": "Realized volatility of simulated asset prices in feedback-loop scenarios, measured over rolling windows."
+    },
+    {
+      "name": "price_deviation_from_fundamentals",
+      "unit": "percentage or basis_points",
+      "description": "Difference between simulated prices and an underlying 'fundamental' value path in reflexivity experiments."
+    },
+    {
+      "name": "fraud_detection_precision",
+      "unit": "percentage",
+      "description": "Precision (positive predictive value) of the fraud model under baseline and adversarial conditions."
+    },
+    {
+      "name": "fraud_detection_recall",
+      "unit": "percentage",
+      "description": "Recall (true positive rate) of the fraud model under baseline and adversarial conditions."
+    },
+    {
+      "name": "fraud_loss",
+      "unit": "monetary_units",
+      "description": "Total monetary value of undetected fraud per period under baseline and attack scenarios."
+    },
+    {
+      "name": "fairness_demographic_parity_diff",
+      "unit": "percentage_points",
+      "description": "Difference in approval or positive outcome rates between protected and reference groups."
+    },
+    {
+      "name": "fairness_equalized_odds_gap",
+      "unit": "percentage_points",
+      "description": "Difference in true positive and/or false positive rates between protected and reference groups."
+    },
+    {
+      "name": "llm_off_policy_action_rate",
+      "unit": "percentage",
+      "description": "Proportion of LLM/agent responses that propose or would execute actions outside of defined policy constraints or allowed tools."
+    },
+    {
+      "name": "llm_prompt_injection_success_rate",
+      "unit": "percentage",
+      "description": "Fraction of adversarial prompts that cause the LLM to ignore, circumvent, or contradict system-level instructions in a materially relevant way."
+    },
+    {
+      "name": "cascade_capital_ratio_error",
+      "unit": "percentage_points",
+      "description": "Difference between true and estimated capital ratios in the multi-stage cascade experiment."
+    },
+    {
+      "name": "kpi_breach_count",
+      "unit": "count",
+      "description": "Number of time steps or scenarios where defined governance thresholds (e.g., maximum loss, fairness disparity, volatility) are breached."
+    }
+  ],
+  "success_criteria": {
+    "global": [
+      "For each failure mode, at least one treatment configuration produces a statistically and practically significant deviation in one or more key metrics relative to its baseline (e.g., drift causes AUC drop > 5 percentage points and expected loss increase > 20%).",
+      "Effects are robust across multiple random seeds or runs, with 95% confidence intervals that do not overlap baseline for primary impact metrics in at least one treatment setting.",
+      "Each experiment yields clear, reproducible visualizations and quantitative tables that map the failure mode to business and regulatory impact proxies (e.g., losses, volatility, fairness gaps, capital misestimation).",
+      "Parameter files and notebooks allow toggling failure intensity (e.g., drift speed, RL misalignment strength, market impact, degree of bias) and demonstrate monotonic or interpretable response in impact metrics."
+    ],
+    "per_scenario": {
+      "3.2_drift_and_regime_change": "Under at least one drift and one regime-shift treatment, rolling-window AUC declines by at least 5\u201310 percentage points vs baseline, Brier score worsens meaningfully, and expected loss deviates upward by at least 20% in affected windows, without any change to the deployed model.",
+      "3.3_misaligned_optimization_rl": "For misaligned reward functions, RL cumulative reward substantially increases while true profit decreases or remains flat relative to aligned reward, and higher-risk segments receive systematically higher limits or exposures.",
+      "3.4_feedback_loops_reflexivity": "As the fraction of market volume driven by the model increases, realized volatility and price deviations from fundamentals increase measurably, and the model's predictive performance (e.g., out-of-sample accuracy) deteriorates due to self-induced regime change.",
+      "3.5_adversarial_manipulation": "Adversarial attacks produce at least a 10\u201320 percentage point drop in precision or recall for targeted fraud segments, or a significant increase in fraud loss, and prompt-injection success is demonstrably higher for adversarial prompts than for benign controls.",
+      "3.6_bias_fairness_conduct_risk": "Induced biases result in fairness metrics breaching pre-defined thresholds (e.g., demographic parity difference or equalized odds gap exceeding 10 percentage points) while standard accuracy metrics may remain similar, illustrating hidden conduct risk.",
+      "3.7_emergent_behaviour_large_models": "Larger or more autonomous models exhibit new categories of responses not observed in the baseline (e.g., multi-step plans, attempts to circumvent constraints, unanticipated tool use) with measurable off-policy action rates greater than zero and qualitatively distinct patterns.",
+      "3.8_failure_cascade": "Combined small perturbations lead to material misestimation of portfolio risk (e.g., capital ratio error beyond 2\u20133 percentage points) and multiple KPI breaches, whereas each perturbation alone remains within conventional single-model tolerance levels."
+    }
+  },
+  "failure_modes": [
+    "Implementation errors in synthetic data generation that inadvertently encode drift, bias, or regime changes into the baseline, compromising comparisons.",
+    "Model training bugs or inconsistent hyperparameters between baseline and treatment that conflate failure-mode effects with implementation differences.",
+    "Insufficient simulation length or sample size, especially for RL and feedback-loop experiments, leading to noisy or inconclusive results.",
+    "Overly simplistic or unrealistic environments that fail to capture key dynamics of real financial systems, reducing external validity of observed behaviors.",
+    "Attack-generation scripts (for adversarial or prompt-injection examples) that are too weak or too strong, producing either no observable impact or trivial model collapse not reflective of realistic threats.",
+    "Fairness experiments where protected-group sizes are too small to support stable estimates of disparity metrics, causing misleading fairness-gap measurements.",
+    "LLM/agent experiments that depend on external APIs whose behavior may change over time, reducing reproducibility unless model versions and prompts are carefully pinned and logged.",
+    "Cascade experiments where interactions between components are incorrectly modeled (e.g., double-counting or omitting dependencies), leading to exaggerated or understated systemic effects."
+  ],
+  "required_environment": {
+    "language_and_runtime": [
+      "Python >= 3.10",
+      "JupyterLab or Jupyter Notebook environment for interactive exploration"
+    ],
+    "python_packages": [
+      "numpy >= 1.24",
+      "pandas >= 2.0",
+      "scikit-learn >= 1.3",
+      "matplotlib >= 3.7",
+      "seaborn >= 0.13",
+      "xgboost >= 1.7  (or lightgbm as an alternative, for gradient-boosted trees)",
+      "gymnasium >= 0.29  (or similar RL environment toolkit)",
+      "stable-baselines3 >= 2.0  (for off-the-shelf RL algorithms)",
+      "fairlearn >= 0.9  (for fairness metrics)",
+      "transformers >= 4.40  (for LLM and sequence-model experiments, if using open-source models)",
+      "datasets >= 2.20  (optional, for any text data handling)",
+      "jinja2 >= 3.1  (optional, for templated prompt generation)",
+      "pyyaml >= 6.0  (for configuration files)",
+      "networkx >= 3.0  (optional, for cascade-graph visualization)"
+    ],
+    "hardware": [
+      "CPU-based environment is sufficient for tabular and RL toy experiments; optional GPU recommended for faster training of larger sequence models or transformers.",
+      "Minimum 8 GB RAM; 16 GB recommended if running all notebooks concurrently."
+    ],
+    "external_services": [
+      "Optional: access to an LLM API (e.g., OpenAI, Anthropic, or local model served via an internal endpoint) if not running open-source models locally. All such dependencies should be abstracted behind configuration files with clear version/endpoint specification."
+    ],
+    "repository_structure": {
+      "root": "https://github.com/bookauthority/boardroom-blind-spots",
+      "chapter_dir": "experiments/chapter_03_failure_modes",
+      "subdirs": [
+        "notebooks/3.2_drift_regime_change",
+        "notebooks/3.3_rl_incentives",
+        "notebooks/3.4_feedback_loops",
+        "notebooks/3.5_adversarial_inputs",
+        "notebooks/3.6_fairness_bias",
+        "notebooks/3.7_emergent_behaviour",
+        "notebooks/3.8_failure_cascade",
+        "configs",
+        "data_generated",
+        "shared_utils"
+      ]
+    }
+  },
+  "run_instructions": [
+    "Clone the repository: `git clone https://github.com/bookauthority/boardroom-blind-spots.git` and change into the project directory.",
+    "Create and activate a Python virtual environment (e.g., `python -m venv .venv && source .venv/bin/activate` on Unix-like systems, or the equivalent on Windows).",
+    "Install core dependencies: `pip install -r requirements.txt`. Ensure that the requirements file includes all packages listed under `required_environment.python_packages`.",
+    "Navigate to the Chapter 3 experiments directory: `cd experiments/chapter_03_failure_modes`.",
+    "Generate baseline synthetic datasets by running the shared data-generation script (e.g., `python shared_utils/generate_baseline_data.py --config configs/baseline_credit_risk.yaml`). This script should create datasets in `data_generated/` used across multiple notebooks.",
+    "Open JupyterLab or Jupyter Notebook: `jupyter lab` or `jupyter notebook` and navigate to the relevant notebook for the scenario you wish to run (e.g., `notebooks/3.2_drift_regime_change/credit_drift_demo.ipynb`).",
+    "For each notebook, first run the 'Setup' and 'Baseline' sections to reproduce the reference behavior and metrics; verify that the reported baseline metrics align with the published reference values in the notebook's header.",
+    "Next, run the 'Treatment' sections, which apply specific failure-mode perturbations (e.g., drift parameters, misaligned rewards, attack intensities). Most notebooks should provide parameter cells where you can adjust failure intensity; start with default settings before exploring extremes.",
+    "For RL experiments, allow sufficient training episodes (as documented in the notebook) and run multiple seeds if desired by adjusting the `n_seeds` or `random_seed` configuration at the top of the notebook. Save result summaries to `data_generated/` using provided helper functions.",
+    "For LLM and agent-based experiments, configure the model backend in `configs/llm_backend.yaml` (e.g., local vs API, model name, temperature). Run the prompts defined in the notebook cells and review logged outputs. If using external APIs, ensure that API keys are stored securely (e.g., environment variables) and not committed to the repository.",
+    "To run the cascade experiment, first execute the individual component notebooks (PD, LGD, aggregation) to confirm they match baseline behavior, then run the cascade notebook (e.g., `notebooks/3.8_failure_cascade/cascade_simulation.ipynb`), which will load component outputs or models and apply combined perturbations.",
+    "Optionally, run the orchestration script (e.g., `python run_all_ch3_experiments.py`) from the `chapter_03_failure_modes` directory to execute a minimal baseline-and-treatment suite for all scenarios non-interactively, storing metrics and plots in `data_generated/summary/`."
+  ],
+  "evidence_schema": {
+    "summary_level": {
+      "description": "High-level, board-relevant artifacts summarizing each failure mode in terms of business, customer, and regulatory impacts.",
+      "artifacts": [
+        {
+          "type": "markdown_report",
+          "location_pattern": "experiments/chapter_03_failure_modes/reports/{scenario_id}_summary.md",
+          "fields": [
+            "scenario_id",
+            "failure_mode_name",
+            "business_use_case_description",
+            "key_failure_mechanism",
+            "baseline_behavior_summary",
+            "treatment_behavior_summary",
+            "primary_metrics_changed",
+            "business_impact_narrative",
+            "regulatory_risk_narrative",
+            "board_questions_to_ask"
+          ]
+        },
+        {
+          "type": "png_plot",
+          "location_pattern": "experiments/chapter_03_failure_modes/reports/{scenario_id}_*.png",
+          "description": "Core visualizations such as drift over time, reward vs true profit, volatility vs model penetration, fairness disparities, and cascade decompositions."
+        }
+      ]
+    },
+    "run_level": {
+      "description": "Structured JSON or CSV logs capturing inputs, configuration, and outcomes for each experimental run (baseline and treatments).",
+      "artifacts": [
+        {
+          "type": "json",
+          "location_pattern": "experiments/chapter_03_failure_modes/data_generated/{scenario_id}/runs/{run_id}.json",
+          "fields": [
+            "run_id",
+            "scenario_id",
+            "timestamp_utc",
+            "random_seed",
+            "run_type",
+            "config_reference",
+            "model_spec",
+            "environment_spec",
+            "failure_mode_parameters",
+            "metrics_snapshot",
+            "notes"
+          ],
+          "field_definitions": {
+            "run_type": "Enum: 'baseline' or 'treatment'.",
+            "config_reference": "Path or hash of the configuration file used for this run.",
+            "model_spec": "Dictionary describing model type, version, and hyperparameters.",
+            "environment_spec": "Dictionary describing environment, data-generation parameters, and any special conditions (drift, reward function, attack type).",
+            "failure_mode_parameters": "Subset of environment/model parameters directly responsible for the induced failure mode (e.g., drift_rate, reward_misalignment_factor, attacker_strength, bias_type, market_impact_factor).",
+            "metrics_snapshot": "Dictionary mapping metric names (from the `metrics` list) to measured values for this run.",
+            "notes": "Free-text description of any anomalies or specific observations."
+          }
+        },
+        {
+          "type": "csv",
+          "location_pattern": "experiments/chapter_03_failure_modes/data_generated/{scenario_id}/metrics_timeseries_{run_id}.csv",
+          "columns": [
+            "time_step_or_epoch",
+            "metric_name",
+            "metric_value"
+          ],
+          "description": "Long-form time-series of key metrics (e.g., AUC, expected_loss, volatility, cumulative_reward) for each run."
+        }
+      ]
+    },
+    "component_level": {
+      "description": "Reusable components, configuration, and metadata that allow reconstruction and extension of experiments.",
+      "artifacts": [
+        {
+          "type": "yaml",
+          "location_pattern": "experiments/chapter_03_failure_modes/configs/{scenario_id}_*.yaml",
+          "fields": [
+            "scenario_id",
+            "description",
+            "model_class",
+            "environment_class",
+            "data_generation_params",
+            "failure_mode_params",
+            "training_params",
+            "evaluation_params",
+            "llm_backend_params_optional"
+          ]
+        },
+        {
+          "type": "python_module",
+          "location_pattern": "experiments/chapter_03_failure_modes/shared_utils/*.py",
+          "description": "Utility modules for synthetic data generation, metrics computation, drift injection, attack generation, and visualization; should be documented and referenced from notebooks."
+        }
+      ]
+    }
+  }
+}

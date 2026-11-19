@@ -1,0 +1,4 @@
+vendor_service,provider,consumer_model_id,risk_tier
+V1-llm-api,VendorCo,M3,2
+V2-fraud-api,VendorCo,M5,1
+V3-altdata-model,AltVendor,M2,3

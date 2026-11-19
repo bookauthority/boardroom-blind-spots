@@ -1,0 +1,12 @@
+# Placeholder schema description for AI inventory.
+# In a full implementation this would define required fields and validation
+# rules. Here it exists to mirror the chapter specification but is not
+# parsed by the code to keep dependencies minimal.
+version: 1
+fields:
+  - model_id
+  - name
+  - type
+  - business_line
+  - owner
+  - vendor

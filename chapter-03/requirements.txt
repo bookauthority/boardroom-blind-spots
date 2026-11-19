@@ -1,0 +1,3 @@
+# Intentionally left without runtime dependencies.
+# The experiment uses only the Python 3.11+ standard library.
+

@@ -1,0 +1,4 @@
+# Simple key: value mapping of materiality tiers.
+Tier1: high
+Tier2: medium
+Tier3: low

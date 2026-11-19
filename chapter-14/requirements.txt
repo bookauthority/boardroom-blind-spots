@@ -1,0 +1,2 @@
+# Runtime uses only the Python standard library.
+# This file exists for compatibility with tooling that expects it.

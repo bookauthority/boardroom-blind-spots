@@ -1,0 +1,566 @@
+{
+  "experiment_id": "exp-12-model-validation-reimagined-v1",
+  "hypothesis": "A structured, code-driven validation harness that combines probing, red-teaming, adversarial testing, and robustness/fairness/stability checks on end-to-end decision pipelines will surface materially more validation-relevant issues (e.g., fragility, unfairness, unsafe autonomy) than a traditional, model-centric validation approach using standard holdout tests and documentation review alone, when applied to the same AI-based credit decision workflow.",
+  "baseline": {
+    "description": "Traditional model validation workflow adapted from classical quantitative finance practice, focusing on a single supervised model in isolation.",
+    "characteristics": [
+      "Validates only the core prediction model (e.g., credit default classifier) rather than the full decision pipeline.",
+      "Relies on static train/validation/test splits and cross-validation for performance estimation.",
+      "Uses standard performance metrics (AUC, accuracy, precision/recall) and simple stability checks (population stability index, basic drift charts).",
+      "Performs limited, manually designed sensitivity tests (e.g., monotonicity checks on key features).",
+      "Conducts qualitative documentation review and governance checklist completion.",
+      "No systematic adversarial testing, red-teaming, or automated probing for edge-case behavior.",
+      "No explicit, automated fairness or robustness stress tests across macro and data perturbation scenarios.",
+      "Validation artifacts are static reports and spreadsheets; no reusable test harness."
+    ],
+    "procedure": [
+      "Train or load a baseline credit risk model f_baseline on a historical labeled dataset D (features X, label y = default/non-default).",
+      "Create standard data splits: D_train, D_valid, D_test using a fixed random seed.",
+      "Fit model on D_train, tune on D_valid, report performance on D_test using AUC and related metrics.",
+      "Compute simple drift and stability indicators (e.g., PSI between development and a separate 'recent' slice).",
+      "Perform manual feature sensitivity tests on a limited set of key features (e.g., income, age), holding others fixed and plotting predicted probability curves.",
+      "Document methods, assumptions, and limitations; complete a qualitative governance checklist.",
+      "Summarize validation in a static report (PDF/markdown) without executable stress notebooks."
+    ]
+  },
+  "treatment": {
+    "description": "Reimagined model validation harness targeting autonomous AI properties\u2014opacity, adaptivity, and autonomy\u2014on an end-to-end credit decision process, not just the classifier. Implements systematic probing, red-teaming, adversarial testing, robustness/fairness/stability stress tests, and continuous-life-cycle validation hooks.",
+    "components": [
+      {
+        "name": "End-to-end decision pipeline validation",
+        "description": "Validate the combined pipeline P: raw data and contextual inputs -> feature engineering and transformations -> core model(s) (e.g., ML classifier + optional LLM helper) -> decision logic and thresholds -> credit decision and limit assignment."
+      },
+      {
+        "name": "Automated probing and behavioral mapping",
+        "description": "Generate structured probes (systematic variations of input features and contexts) to map decision surfaces, non-monotonic behavior, and unexpected discontinuities across relevant feature ranges and customer archetypes."
+      },
+      {
+        "name": "Red-teaming and adversarial testing",
+        "description": "Implement automated and semi-automated red-team agents that search for inputs which: maximize model disagreement, exploit known weaknesses (e.g., prompt injection on any LLM components), or push the system into unsafe regimes (e.g., approving clearly high-risk borrowers or systematically disadvantaging protected groups)."
+      },
+      {
+        "name": "Robustness and stress testing",
+        "description": "Apply structured perturbations to data and environment (e.g., macroeconomic stress features, noise, missingness patterns, covariate shifts) and quantify performance degradation, decision volatility, and capital impact proxies."
+      },
+      {
+        "name": "Fairness and conduct risk checks",
+        "description": "Compute multiple fairness metrics across protected and proxy groups (e.g., demographic parity difference, equal opportunity difference, disparate impact ratio) under both normal and stressed conditions; probe for unstable fairness (metrics flipping sign or magnitude under mild shifts)."
+      },
+      {
+        "name": "Lifecycle and live-environment validation hooks",
+        "description": "Include monitoring-ready tests (drift checks, canary probes, challenger evaluations) that can run continuously on shadow or live data streams to detect degradation and trigger alerts or human review."
+      },
+      {
+        "name": "Regulator- and board-ready documentation outputs",
+        "description": "Auto-generate structured validation summaries (markdown/HTML/PDF) containing executive-level narratives, visual exhibits, and traceable links back to reproducible code and test artifacts."
+      }
+    ],
+    "procedure": [
+      "Implement an end-to-end pipeline object P_treatment that encapsulates: data preprocessing, feature engineering, the prediction model(s), decision rules, and any LLM components used for underwriting commentary or exception handling.",
+      "Reuse the same dataset D and core model architecture as the baseline where possible to maintain comparability, adding only the pipeline logic and additional components needed for realistic decisioning.",
+      "Create the same core data splits (D_train, D_valid, D_test) with the same random seed as the baseline; optionally create additional temporal splits or out-of-time samples D_oot.",
+      "Train or load the pipeline P_treatment using D_train and D_valid, ensuring equivalent hyperparameter search budgets to the baseline where applicable.",
+      "Run the baseline-style evaluation (AUC, accuracy, standard drift metrics) within the treatment harness to establish a like-for-like foundation.",
+      "Execute automated probing suites that systematically vary key features (e.g., income, age, debt-to-income, credit history length) and contexts to map: monotonicity, local smoothness, decision boundaries, and any discontinuous or counter-intuitive behaviors.",
+      "Execute red-team and adversarial tests to: discover inputs causing extreme or unstable decisions, identify prompts or contexts that cause unsafe behavior in any LLM components, and uncover manipulation strategies (e.g., feature gaming) that lead to undeserved approvals.",
+      "Run robustness and stress tests by simulating macro conditions (e.g., unemployment shock), distributional shifts (e.g., different portfolio mix), and technical perturbations (noise, missing data, feature masking) while measuring performance degradation, decision volatility, and fairness drift.",
+      "Compute fairness metrics across protected and proxy groups under both baseline and stressed distributions; identify material disparities and their sensitivity to shifts and adversarial cases.",
+      "Generate validation artifacts: structured logs of discovered issues, ranked by severity; visual maps of decision regions; fairness and robustness dashboards; and an executive summary report tailored for board and regulator consumption.",
+      "Package the entire treatment workflow in version-controlled notebooks and test scripts (e.g., pytest or similar) so that institutions can adapt and rerun on their own models/data."
+    ]
+  },
+  "workloads": [
+    {
+      "name": "WL1-tabular-credit-scoring-pipeline",
+      "description": "Synthetic or anonymized tabular credit-risk dataset representative of consumer lending in a regulated financial institution, including potential protected attributes or strong proxies.",
+      "data_characteristics": {
+        "modality": "Tabular, supervised classification.",
+        "features": [
+          "Numerical: income, age, existing debt, credit utilization, number of prior delinquencies, account age, requested credit limit, loan-to-value ratio, etc.",
+          "Categorical: employment type, region, product type, channel.",
+          "Protected/proxy attributes: gender (if allowed in jurisdiction), postcode/region, age bands, other socio-economic proxies."
+        ],
+        "target_label": "Default within 12 months (binary: 1 = default, 0 = non-default).",
+        "size": "At least 50k\u2013200k rows to approximate realistic portfolio size; split into development and out-of-time segments if possible.",
+        "sourcing": "Use an open dataset (e.g., a public credit dataset) or a synthetically generated dataset with realistic distributions and correlations; ensure legal compliance with any protected attribute usage (for demonstration, synthetic or anonymized data is strongly preferred)."
+      },
+      "models": {
+        "baseline_model": "Gradient-boosted decision trees or random forest classifier (e.g., XGBoost/LightGBM/sklearn RandomForest) trained on pre-engineered features.",
+        "treatment_pipeline": "Pipeline wrapping the same model class as baseline, plus explicit feature preprocessing, decision rule logic (thresholds, policy rules), and optional lightweight LLM component for auto-generated risk narratives or exception handling (if included, use an open-source small LLM or simple template-based surrogate for reproducibility)."
+      },
+      "scenarios": [
+        {
+          "id": "WL1-S1-normal-conditions",
+          "description": "Evaluation under development-like data distribution to compare baseline and treatment harness outputs in a stable environment."
+        },
+        {
+          "id": "WL1-S2-macro-stress",
+          "description": "Simulated macroeconomic downturn (e.g., higher unemployment, lower income, higher default base rate) to test robustness and decision stability under stress."
+        },
+        {
+          "id": "WL1-S3-covariate-shift",
+          "description": "Portfolio mix change (e.g., more young borrowers, more gig-economy employment types) to test model adaptability and fairness stability under demographic shifts."
+        },
+        {
+          "id": "WL1-S4-adversarial-feature-gaming",
+          "description": "Inputs intentionally constructed to exploit feature nonlinearities and thresholds (e.g., just above income or credit-score cutoffs) to probe for sharp cliffs and gaming opportunities."
+        },
+        {
+          "id": "WL1-S5-protected-group-edge-cases",
+          "description": "Systematic probing of borderline cases near decision thresholds across different groups to detect subtle fairness and conduct risk issues."
+        },
+        {
+          "id": "WL1-S6-online-drift-simulation",
+          "description": "Simulated time-series of incoming applications showing gradual drift (e.g., more online-only borrowers, new product types) to test lifecycle validation hooks and drift alerts."
+        }
+      ]
+    },
+    {
+      "name": "WL2-llm-assistant-subcomponent-optional",
+      "description": "Optional workload if the institution uses LLMs in underwriting or customer decision support; focuses on prompt injection and behavioral red-teaming for the LLM subcomponent.",
+      "data_characteristics": {
+        "modality": "Text prompts and contexts paired with expected safe responses.",
+        "features": [
+          "User queries about credit decisions.",
+          "Underwriting guidelines or policies as contextual system instructions.",
+          "Potentially malicious or manipulative prompts crafted by red-team agents."
+        ],
+        "target_label": "Not applicable for supervised training; evaluation is behavioral (policy compliance, safety)."
+      },
+      "models": {
+        "baseline_model": "None in baseline; traditional validation treats the LLM as outside scope or relies on vendor attestations.",
+        "treatment_pipeline": "LLM or text-generation model (open-source or API-based) used to generate explanations or recommendations, wrapped in a validator that checks for policy violations or unsafe content."
+      },
+      "scenarios": [
+        {
+          "id": "WL2-S1-benign-queries",
+          "description": "Standard customer and analyst questions about decisions to benchmark explanation stability and compliance."
+        },
+        {
+          "id": "WL2-S2-prompt-injection",
+          "description": "Inputs trying to override system instructions or elicit policy-violating responses (e.g., encouraging discriminatory advice or circumvention of controls)."
+        },
+        {
+          "id": "WL2-S3-information-hazard-queries",
+          "description": "Requests for sensitive internal logic or advice on how to game the credit system, used to test red-teaming and containment policies."
+        }
+      ]
+    }
+  ],
+  "controls": {
+    "comparability_controls": [
+      "Use identical underlying datasets (D_train, D_valid, D_test, and D_oot if applicable) and random seeds for baseline and treatment wherever stochasticity occurs.",
+      "Use the same model class and comparable hyperparameter search budget for the core classifier in both baseline and treatment.",
+      "Fix the decision threshold (or use identical optimization criteria) across baseline and treatment when comparing confusion-matrix-based metrics.",
+      "For fairness analysis, use the same group definitions and slices across baseline and treatment.",
+      "For stress and perturbation scenarios, apply the same perturbation generators and parameters to both baseline model and treatment pipeline so differences can be attributed to the validation method, not the input conditions."
+    ],
+    "environmental_controls": [
+      "Run all experiments on the same hardware configuration (or cloud instance type) to ensure timing and resource metrics are comparable.",
+      "Pin dependency versions (e.g., Python, ML libraries) in a requirements or environment file; use containers (e.g., Docker) where possible.",
+      "Record configuration and git commit hash for every run to ensure full traceability."
+    ],
+    "process_controls": [
+      "Automate experiment orchestration with a script or workflow manager that: runs baseline first, then treatment, on each workload and scenario; collects outputs into a unified results store (e.g., JSON/Parquet).",
+      "Implement tests (unit/integration) ensuring that reference implementations (e.g., fairness metric calculations, drift estimators) behave identically between baseline and treatment contexts.",
+      "Log all random seeds, sampling rates, and perturbation parameters with the results for auditability."
+    ]
+  },
+  "metrics": [
+    {
+      "name": "auc_roc",
+      "unit": "dimensionless (0\u20131)",
+      "description": "Area under the ROC curve on the test set; used to confirm that treatment harness does not significantly degrade base predictive performance relative to baseline."
+    },
+    {
+      "name": "accuracy",
+      "unit": "dimensionless (0\u20131)",
+      "description": "Overall classification accuracy on the test set for comparability with traditional validation reports."
+    },
+    {
+      "name": "psi_feature",
+      "unit": "dimensionless",
+      "description": "Population Stability Index per key feature between development data and test or stressed distributions; higher values indicate more severe drift."
+    },
+    {
+      "name": "decision_volatility_rate",
+      "unit": "percentage of instances",
+      "description": "Fraction of instances where small, controlled perturbations to inputs (within plausible ranges) change the final decision (e.g., approve/decline); measures local robustness of the decision boundary."
+    },
+    {
+      "name": "monotonicity_violation_rate",
+      "unit": "percentage of probed trajectories",
+      "description": "Fraction of probing paths (e.g., increasing income or decreasing debt) where model outputs violate expected monotonic behavior; indicates counter-intuitive or fragile decision regions."
+    },
+    {
+      "name": "adversarial_vulnerability_rate",
+      "unit": "percentage of adversarial attempts",
+      "description": "Proportion of adversarial/red-team generated inputs that successfully induce pre-defined failure behaviors (e.g., unjustified approvals, policy violations, unstable explanations)."
+    },
+    {
+      "name": "fairness_dp_difference",
+      "unit": "absolute probability difference",
+      "description": "Demographic parity difference in approval rates between protected and reference groups under each scenario; computed as |P(approve | group A) - P(approve | group B)|."
+    },
+    {
+      "name": "fairness_eod_difference",
+      "unit": "absolute probability difference",
+      "description": "Equal opportunity difference: difference in true positive rates between protected and reference groups under each scenario."
+    },
+    {
+      "name": "disparate_impact_ratio",
+      "unit": "ratio",
+      "description": "Ratio of approval rates between protected and reference groups; values significantly below 0.8 (or jurisdiction-specific thresholds) may indicate disparate impact risk."
+    },
+    {
+      "name": "fairness_instability_index",
+      "unit": "dimensionless",
+      "description": "Aggregate measure of fairness metric sensitivity across scenarios and perturbations (e.g., standard deviation of fairness metrics across WL1-S1\u2013S6); higher indicates fairness that is not robust to shifts."
+    },
+    {
+      "name": "stress_performance_drop",
+      "unit": "percentage points",
+      "description": "Change in AUC or other performance metrics between normal and stressed scenarios (e.g., WL1-S1 vs WL1-S2); measures robustness under macro stress."
+    },
+    {
+      "name": "capital_proxy_difference",
+      "unit": "basis points or monetary units",
+      "description": "Difference in a simple capital/expected-loss proxy between baseline and treatment-discovered stress conditions (e.g., realized default rate on approvals under simulated stress); provides a business-impact lens on validation findings."
+    },
+    {
+      "name": "llm_policy_violation_rate",
+      "unit": "percentage of prompts (WL2 only)",
+      "description": "Fraction of LLM responses flagged as violating safety or policy rules under benign and adversarial prompts; relevant if WL2 is used."
+    },
+    {
+      "name": "issue_detection_count",
+      "unit": "count",
+      "description": "Number of unique, validation-relevant issues discovered by each approach (baseline vs treatment), classified by severity (e.g., high/medium/low) in a standardized schema."
+    },
+    {
+      "name": "validation_runtime",
+      "unit": "minutes or hours",
+      "description": "End-to-end wall-clock time to complete the baseline vs treatment validation suites for a given workload and scenario set."
+    },
+    {
+      "name": "reusability_index",
+      "unit": "qualitative ordinal scale (e.g., 1\u20135)",
+      "description": "Structured, post-run assessment of how reusable the validation harness is (e.g., number of parameters/configs that can be toggled to adapt to new models); captured as metadata rather than a computed statistic but included here to guide design."
+    }
+  ],
+  "success_criteria": {
+    "primary": [
+      "Under matched conditions and datasets, the treatment validation harness identifies a materially higher number of unique, high-severity issues than the baseline approach (e.g., at least 30\u201350% increase in high-severity issue_detection_count), without a statistically significant reduction in core predictive performance (auc_roc difference within a small pre-defined tolerance, e.g., \u00b10.01).",
+      "Treatment exposes at least one category of issue that baseline never systematically tests for in each of the following dimensions: (a) adversarial/red-team vulnerability (adversarial_vulnerability_rate), (b) fairness instability (fairness_instability_index), and (c) decision volatility/monotonicity violations (decision_volatility_rate, monotonicity_violation_rate)."
+    ],
+    "secondary": [
+      "Treatment demonstrates quantitative robustness insights not visible in the baseline, such as significantly different stress_performance_drop or capital_proxy_difference under WL1-S2\u2013S4 scenarios.",
+      "For any LLM subcomponents (WL2), the treatment harness measures and reduces llm_policy_violation_rate compared to an untested baseline configuration through iterative red-teaming and prompt/guardrail refinement.",
+      "Validation_runtime for the treatment is within an acceptable overhead factor (e.g., no more than 2\u20133x) relative to the baseline, given the increased coverage and diagnostic power.",
+      "Reusability_index for the treatment harness is rated higher than the baseline approach when assessed for adaptation to at least one additional model or decision pipeline."
+    ],
+    "interpretation_notes": [
+      "Success is **not** defined by treatment models being 'better' predictors, but by the validation function uncovering deeper and more actionable risk insights.",
+      "Where metrics conflict (e.g., higher issue_detection_count but very high runtime), trade-offs should be documented rather than forcing a binary success/failure judgment.",
+      "Executives and boards should focus on categories of issues surfaced (e.g., stability under stress, fairness under shift, autonomy-induced unsafe decisions) rather than only on point estimates."
+    ]
+  },
+  "failure_modes": [
+    {
+      "name": "Non-comparable models or thresholds",
+      "description": "Differences in model class, hyperparameters, or decision thresholds between baseline and treatment lead to misleading comparisons (e.g., treatment appears to detect more issues simply because it uses a different sensitivity configuration).",
+      "mitigations": [
+        "Implement configuration files that define all core model and threshold parameters shared between baseline and treatment.",
+        "Add automated checks that confirm equivalence of key hyperparameters before running comparative experiments."
+      ]
+    },
+    {
+      "name": "Unrealistic data or stress scenarios",
+      "description": "Synthetic or open data and stress scenarios are not representative of real portfolios or regulatory expectations, limiting executive and regulator trust in findings.",
+      "mitigations": [
+        "Parameterize data generation and stress scenario creation so that institutions can plug in their own distributions and scenario definitions.",
+        "Document clearly the assumptions and limitations of sample datasets and scenario generators, emphasizing their illustrative purpose."
+      ]
+    },
+    {
+      "name": "Overfitting to adversarial tests",
+      "description": "Developers or validators tune the model specifically to pass the treatment\u2019s test suite, reducing its ability to detect new or unanticipated issues.",
+      "mitigations": [
+        "Rotate and expand adversarial test sets periodically; keep a subset of adversarial probes hidden or out-of-sample for final evaluation.",
+        "Encourage a governance principle that metrics and probes are periodically refreshed and that over-optimization to a static test suite is itself treated as a validation concern."
+      ]
+    },
+    {
+      "name": "Excessive computational or operational overhead",
+      "description": "Treatment harness is too slow or complex to run regularly, leading to abandonment in favor of simpler but weaker validation methods.",
+      "mitigations": [
+        "Support configurable sampling (e.g., run full stress suite on a subset of data for routine checks, full coverage less frequently).",
+        "Profile runtime and optimize hotspots (e.g., vectorize probing, cache feature transformations).",
+        "Provide 'tiers' of the test suite (essential vs extended) with clear guidance on when each tier should be run (e.g., model approval vs periodic review)."
+      ]
+    },
+    {
+      "name": "Ambiguous severity classification of issues",
+      "description": "Different validators classify similar findings with different severities, making issue_detection_count and comparisons unreliable.",
+      "mitigations": [
+        "Define a standardized issue taxonomy (e.g., High: safety, legality, capital impact; Medium: robustness, fairness drift; Low: documentation gaps) and include concrete examples.",
+        "Implement a validation checklist that maps metric thresholds and patterns (e.g., fairness_dp_difference > X) to suggested severity levels."
+      ]
+    },
+    {
+      "name": "Legal or privacy constraints on fairness analysis",
+      "description": "Some jurisdictions restrict the use or storage of protected attributes, limiting fairness metric calculation.",
+      "mitigations": [
+        "Design the harness to work with both direct protected attributes (where legally allowed) and proxy-based groupings or externally supplied aggregates.",
+        "Document jurisdictional assumptions and provide switches to disable certain analyses where they may be non-compliant."
+      ]
+    },
+    {
+      "name": "Misinterpretation of metrics by non-technical stakeholders",
+      "description": "Executives or board members misinterpret nuanced validation metrics (e.g., fairness instability) leading to overconfidence or unwarranted panic.",
+      "mitigations": [
+        "Provide a concise, non-technical metrics glossary and 'interpretation notes' alongside outputs.",
+        "Generate board-focused views (simplified dashboards, traffic-light indicators) from the same underlying evidence without hiding the raw technical detail from validators."
+      ]
+    }
+  ],
+  "required_environment": {
+    "hardware": {
+      "minimum": "1 modern CPU-only machine (e.g., 4\u20138 vCPUs, 16\u201332 GB RAM) for WL1; optional GPU (e.g., 1 modest GPU such as NVIDIA T4) if experimenting with larger LLM components in WL2.",
+      "recommended": "Container-orchestrated environment (e.g., Docker on a cloud VM) to ensure reproducibility and isolation from production systems."
+    },
+    "software": {
+      "language": "Python 3.10+ (or later LTS version pinned in environment).",
+      "core_libraries": [
+        "pandas, numpy for data handling.",
+        "scikit-learn for baseline tabular models and metrics.",
+        "xgboost or lightgbm for gradient-boosted models if desired.",
+        "matplotlib, seaborn, or plotly for visualization.",
+        "fairlearn, aif360, or equivalent for fairness metrics (subject to licensing).",
+        "alibi-detect or similar for drift/anomaly detection (optional but recommended).",
+        "pytest or similar framework for automated tests.",
+        "papermill or nbconvert for parameterized notebook execution (optional).",
+        "LLM-related libraries (e.g., transformers) and/or API clients if WL2 is used."
+      ],
+      "os": "Linux (preferred), macOS, or Windows; use the same OS image for all comparative runs when possible."
+    },
+    "data_governance": {
+      "requirements": [
+        "All datasets used must be anonymized or synthetic if stored in the public repository.",
+        "Any real data must be processed and stored in compliance with the institution\u2019s data protection and privacy policies; repository code should treat real data locations as external mounts or environment-specific paths, never embedded.",
+        "Protected-attribute usage must align with applicable laws and regulatory guidance in each jurisdiction; code should support toggling or substituting these fields."
+      ]
+    },
+    "security_and_isolation": {
+      "requirements": [
+        "Run experiments in non-production environments only; no direct connection to live transaction systems.",
+        "If using external LLM APIs, ensure no sensitive personal data or proprietary strategies are transmitted.",
+        "Use role-based access controls and logging for experiment execution in regulated environments."
+      ]
+    }
+  },
+  "run_instructions": [
+    "Clone the repository: `git clone https://github.com/bookauthority/boardroom-blind-spots` and navigate to the chapter 12 experiments directory (e.g., `cd boardroom-blind-spots/experiments/ch12_model_validation_reimagined`).",
+    "Create and activate a Python virtual environment or use the provided container image (e.g., `docker build -t ch12-validation .`); alternatively, use `conda` with the supplied `environment.yml` file.",
+    "Install dependencies: `pip install -r requirements.txt` or `conda env create -f environment.yml` (adjust commands to match repository structure).",
+    "Obtain or generate data: \n  - For demos, run the provided data-generation script (e.g., `python scripts/generate_credit_data.py --output data/credit_synthetic.csv`).\n  - For institutional runs, configure the data loader to point to your internal, governed datasets (e.g., modify `config/data_config.yaml`).",
+    "Configure experiment parameters by editing a configuration file (e.g., `config/experiment_config.yaml`), specifying: datasets (paths and splits), model type and hyperparameters, protected group definitions, scenarios to run (WL1-S1\u2013S6, WL2-S1\u2013S3), and whether to enable LLM subcomponents.",
+    "Run the baseline validation suite: \n  - Execute `python run_baseline_validation.py --config config/experiment_config.yaml` or a similar/parameterized notebook (e.g., `papermill notebooks/baseline_validation.ipynb notebooks/output/baseline_validation_run.ipynb -p config_path config/experiment_config.yaml`).\n  - Confirm that baseline metrics (auc_roc, accuracy, psi_feature) and static reports are generated in an output directory (e.g., `outputs/baseline/`).",
+    "Run the treatment validation suite: \n  - Execute `python run_treatment_validation.py --config config/experiment_config.yaml` or `papermill`/notebook equivalent.\n  - Ensure that treatment outputs include: probing maps, adversarial test results, robustness and fairness metrics, and an auto-generated summary report (e.g., `outputs/treatment/report_summary.html`).",
+    "Run optional WL2 LLM-focused tests if configured: \n  - Execute `python run_llm_red_team.py --config config/experiment_config.yaml`.\n  - Review llm_policy_violation_rate and example flagged conversations in `outputs/treatment/llm_redteam/`.",
+    "Aggregate results for comparison: \n  - Execute the aggregator script (e.g., `python scripts/compare_baseline_treatment.py --baseline_dir outputs/baseline --treatment_dir outputs/treatment --output_dir outputs/comparison`).\n  - This script should compute and store comparative metrics (issue_detection_count by severity, adversarial_vulnerability_rate, fairness_instability_index, stress_performance_drop, capital_proxy_difference, validation_runtime) in a structured format (e.g., JSON, CSV) and generate comparison plots.",
+    "Review executive-level summary artifacts: \n  - Open the board/regulator-facing summaries (e.g., `outputs/comparison/board_summary.pdf` or `.html`) that translate technical metrics into governance-relevant insights using plain language and traffic-light indicators.",
+    "Optionally, integrate lifecycle validation hooks: \n  - Use the provided sample scripts (e.g., `monitoring/run_shadow_monitoring.py`) to simulate periodic re-validation on streaming or batch 'production-like' data.\n  - Configure drift thresholds, fairness alerts, and decision-volatility alarms according to your institution\u2019s risk appetite and record alert events for later review.",
+    "Version and document: \n  - Commit configuration files, environment definitions, and summary outputs to a controlled repository branch for auditability (excluding sensitive data).\n  - Record the git commit hash, environment information, and execution timestamps in the evidence metadata for regulatory and internal-audit traceability."
+  ],
+  "evidence_schema": {
+    "run_metadata": {
+      "run_id": "string (UUID or timestamp-based identifier for each full experiment run)",
+      "experiment_id": "string (should match 'exp-12-model-validation-reimagined-v1')",
+      "timestamp_utc": "ISO 8601 datetime of run start and end",
+      "git_commit_hash": "string (repository commit used for this run)",
+      "environment": {
+        "os": "string",
+        "python_version": "string",
+        "library_versions": {
+          "pandas": "string",
+          "numpy": "string",
+          "scikit_learn": "string",
+          "xgboost_or_lightgbm": "string (if used)",
+          "fairness_lib": "string (e.g., fairlearn, aif360)",
+          "drift_lib": "string (e.g., alibi-detect, optional)",
+          "llm_stack": "string (e.g., transformers version or API version, optional)"
+        },
+        "hardware": {
+          "cpu": "string (model and core count)",
+          "ram_gb": "number",
+          "gpu": "string or null"
+        }
+      },
+      "data_config": {
+        "datasets": [
+          {
+            "name": "string (e.g., WL1_credit_synthetic)",
+            "path_or_source": "string (redacted or abstracted if sensitive)",
+            "row_count": "integer",
+            "feature_list": "array of strings",
+            "label_name": "string",
+            "protected_attributes": "array of strings (if used)",
+            "split_ratios": {
+              "train": "float",
+              "validation": "float",
+              "test": "float",
+              "out_of_time": "float or null"
+            },
+            "jurisdictional_constraints": "string (notes on legal/privacy constraints affecting analysis)"
+          }
+        ]
+      }
+    },
+    "model_and_pipeline_info": {
+      "baseline": {
+        "model_type": "string (e.g., GradientBoostingClassifier)",
+        "hyperparameters": "object (key-value pairs)",
+        "training_seed": "integer",
+        "decision_threshold": "float",
+        "feature_preprocessing": "string or object describing transformations"
+      },
+      "treatment": {
+        "pipeline_description": "string summary of components (preprocessing, model, decision rules, LLMs if any)",
+        "core_model_type": "string (should match or be comparable to baseline)",
+        "hyperparameters": "object (key-value pairs)",
+        "training_seed": "integer",
+        "decision_threshold": "float or decision_rule_description",
+        "llm_component": {
+          "used": "boolean",
+          "model_name_or_api": "string or null",
+          "safety_policies_applied": "array of strings"
+        }
+      }
+    },
+    "metrics_results": {
+      "by_workload_and_scenario": [
+        {
+          "workload_name": "string (e.g., WL1-tabular-credit-scoring-pipeline)",
+          "scenario_id": "string (e.g., WL1-S2-macro-stress)",
+          "baseline_metrics": {
+            "auc_roc": "float",
+            "accuracy": "float",
+            "psi_feature": {
+              "feature_name": "float"
+            },
+            "decision_volatility_rate": "float or null (if not computed in baseline)",
+            "monotonicity_violation_rate": "float or null",
+            "adversarial_vulnerability_rate": "float or null",
+            "fairness_dp_difference": {
+              "group_pair": "float"
+            },
+            "fairness_eod_difference": {
+              "group_pair": "float"
+            },
+            "disparate_impact_ratio": {
+              "group_pair": "float"
+            },
+            "fairness_instability_index": "float or null",
+            "stress_performance_drop": "float or null",
+            "capital_proxy_difference": "float or null",
+            "llm_policy_violation_rate": "float or null",
+            "validation_runtime": "float (minutes)"
+          },
+          "treatment_metrics": {
+            "auc_roc": "float",
+            "accuracy": "float",
+            "psi_feature": {
+              "feature_name": "float"
+            },
+            "decision_volatility_rate": "float",
+            "monotonicity_violation_rate": "float",
+            "adversarial_vulnerability_rate": "float",
+            "fairness_dp_difference": {
+              "group_pair": "float"
+            },
+            "fairness_eod_difference": {
+              "group_pair": "float"
+            },
+            "disparate_impact_ratio": {
+              "group_pair": "float"
+            },
+            "fairness_instability_index": "float (may be global across scenarios; reference via run-level id if not per-scenario)",
+            "stress_performance_drop": "float or null (if computed across scenarios, store at aggregated level)",
+            "capital_proxy_difference": "float or null",
+            "llm_policy_violation_rate": "float or null",
+            "validation_runtime": "float (minutes)"
+          }
+        }
+      ],
+      "aggregated": {
+        "issue_detection": {
+          "baseline": {
+            "high_severity": "integer",
+            "medium_severity": "integer",
+            "low_severity": "integer",
+            "issues": [
+              {
+                "id": "string",
+                "category": "string (e.g., fairness, robustness, governance)",
+                "description": "string",
+                "severity": "string (High|Medium|Low)",
+                "evidence_reference": "string (path or id for underlying artifacts)",
+                "linked_metrics": "array of metric names"
+              }
+            ]
+          },
+          "treatment": {
+            "high_severity": "integer",
+            "medium_severity": "integer",
+            "low_severity": "integer",
+            "issues": [
+              {
+                "id": "string",
+                "category": "string",
+                "description": "string",
+                "severity": "string (High|Medium|Low)",
+                "evidence_reference": "string",
+                "linked_metrics": "array of metric names"
+              }
+            ]
+          }
+        },
+        "reusability_assessment": {
+          "baseline_reusability_index": "integer (1\u20135)",
+          "treatment_reusability_index": "integer (1\u20135)",
+          "assessment_notes": "string (qualitative explanation of scoring)."
+        }
+      }
+    },
+    "artifacts": {
+      "plots_and_reports": [
+        {
+          "name": "string (e.g., decision_boundary_probing_WL1-S1)",
+          "type": "string (e.g., png, html, pdf)",
+          "description": "string",
+          "path": "string (relative path in repository or artifact store)",
+          "linked_to": "array of {workload_name, scenario_id, issue_id}"
+        }
+      ],
+      "logs": [
+        {
+          "name": "string (e.g., adversarial_search_log)",
+          "description": "string",
+          "path": "string",
+          "schema": "optional object describing columns/fields"
+        }
+      ]
+    },
+    "governance_outputs": {
+      "board_summary": {
+        "path": "string (e.g., outputs/comparison/board_summary.pdf)",
+        "key_messages": "array of strings summarizing major findings for non-technical audiences."
+      },
+      "regulator_pack": {
+        "path": "string (e.g., outputs/comparison/regulator_annex.zip)",
+        "contents_description": "string (e.g., includes metrics tables, scenario designs, issue logs, and methodology notes)."
+      }
+    }
+  }
+}

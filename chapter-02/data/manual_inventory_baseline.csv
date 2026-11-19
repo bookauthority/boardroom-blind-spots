@@ -1,0 +1,5 @@
+model_id,name,is_ai,business_line,owner,vendor,dependency_type,dependency_name
+M1,Credit Default Model,true,Retail Lending,alice,Internal,data_pipeline,P1
+M2,MR Forecast,true,Markets,bob,Internal,,
+,Chatbot,true,Customer Service,carol,VendorCo,vendor_service,V1-llm-api
+M5,Fraud Detector,true,Payments,erin,VendorCo,,

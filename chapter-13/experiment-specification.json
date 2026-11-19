@@ -1,0 +1,499 @@
+{
+  "experiment_id": "chap13-crisis-mgmt-ai-failure-war-game-v1",
+  "hypothesis": "A structured, AI-specific crisis playbook combined with scripted war-game exercises will lead cross-functional executive teams to respond to large-scale AI incidents faster, with fewer harmful actions and better regulatory-appropriate communication, than teams using a generic operational incident playbook without AI-specific guidance.",
+  "baseline": {
+    "description": "Generic operational incident management playbook with no AI-specific decision rules, metrics, or escalation structures.",
+    "playbook_assets": [
+      "Standard major-incident runbook used for IT outages and cyber incidents (PDF or wiki).",
+      "Existing RACI chart for enterprise incidents (no AI-specific roles).",
+      "Generic communications templates for service outages and cyber events.",
+      "Standard incident-logging form in the firm\u2019s incident management tool."
+    ],
+    "process_characteristics": {
+      "detection_rules": "Generic service-availability, latency, and system error-rate alerts only.",
+      "governance": "Incident commander from IT/operations; ad-hoc involvement of risk, compliance, and business lines.",
+      "communication": "Single generic press/regulator template; no pre-defined AI-risk disclosures.",
+      "decision_rights": "Model shutdown/escalation not explicitly defined; treated like any technical component.",
+      "forensics": "Standard log collection; no AI-specific model, data, or decision-trace capture."
+    }
+  },
+  "treatment": {
+    "description": "AI-specific crisis management playbook aligned with Chapter 13, including detection cues, governance roles, communications templates, and post-incident processes, exercised via scripted war-games.",
+    "playbook_assets": [
+      "AI-incident classification guide distinguishing AI-driven crises from normal incidents.",
+      "AI-specific RACI matrix: roles for Chief AI Officer / CDAO, CRO, CISO, business heads, and board committees.",
+      "Decision trees for model throttling/shutdown, customer remediation, and market-coordination steps.",
+      "AI-incident communications templates for regulators, investors, media, and employees.",
+      "Data and forensics checklist for AI failures (model artifacts, prompts/inputs, training data snapshots, logs).",
+      "War-game scenario scripts and injector events tailored to AI failures in financial services."
+    ],
+    "process_characteristics": {
+      "detection_rules": "Additional AI-specific indicators such as abnormal model drift, decision anomalies, correlated errors across models, and conduct-risk spikes.",
+      "governance": "Pre-defined AI crisis cell with explicit escalation to relevant board committee based on materiality.",
+      "communication": "Segmented templates for supervisors, markets, and customers emphasizing AI-risk context, remediation, and safeguards.",
+      "decision_rights": "Explicit authorities for pausing or constraining AI models, and for moving to manual or alternative processes.",
+      "forensics": "Structured collection of AI-specific artifacts and a pre-agreed minimal set of explainability outputs."
+    }
+  },
+  "workloads": [
+    {
+      "name": "W1-credit-approval-spiral",
+      "description": "Simulated large-scale AI misclassification in retail/SME credit approvals leading to widespread wrongful declines and liquidity impacts.",
+      "scenario_type": "Firm-level customer-impact crisis with potential conduct and reputational risk.",
+      "inputs": {
+        "synthetic_portfolio_size": 100000,
+        "incident_seed": 42,
+        "ai_failure_pattern": "Regime shift in applicant characteristics causing model to under-approve specific segments.",
+        "time_horizon_minutes": 120,
+        "regulator_profile": "Retail banking supervisor in highly consumer-protective jurisdiction.",
+        "pre_configured_alerts": [
+          "Spike in auto-declines vs historical baseline.",
+          "Increased complaint rate on digital channels.",
+          "Drop in portfolio approval rate beyond tolerance."
+        ]
+      },
+      "phases": [
+        "Phase 0 \u2013 Briefing: 5\u201310 minutes overview, starting metrics, and roles.",
+        "Phase 1 \u2013 Detection: 20\u201330 minutes; anomalies emerge via simulated dashboards and injects.",
+        "Phase 2 \u2013 Containment: 30\u201340 minutes; decisions on pausing models, customer messaging, and manual overrides.",
+        "Phase 3 \u2013 External Communication: 30 minutes; regulator and media queries arrive via injects.",
+        "Phase 4 \u2013 Debrief: 30\u201340 minutes; performance metrics captured and discussed."
+      ]
+    },
+    {
+      "name": "W2-trading-algo-feedback-loop",
+      "description": "Simulated autonomous AI-driven trading strategy enters a destabilizing feedback loop, amplifying market volatility and creating potential systemic concerns.",
+      "scenario_type": "Market and systemic-risk crisis with coordination needs across infrastructures.",
+      "inputs": {
+        "synthetic_market_venues": 3,
+        "trading_bots": 5,
+        "incident_seed": 99,
+        "ai_failure_pattern": "Reinforcement learning trader overreacts to short-term signals, triggering self-reinforcing price swings.",
+        "time_horizon_minutes": 90,
+        "regulator_profile": "Market regulator overseeing trading venues and high-frequency trading.",
+        "pre_configured_alerts": [
+          "Excess intraday volatility vs peers.",
+          "Order-to-trade ratio spikes for AI-driven strategies.",
+          "Liquidity thinning in key instruments."
+        ]
+      },
+      "phases": [
+        "Phase 0 \u2013 Briefing: 5\u201310 minutes; role assignment including market relations and treasury.",
+        "Phase 1 \u2013 Detection: 15\u201320 minutes; unusual market behaviour, alerts from venues.",
+        "Phase 2 \u2013 Containment: 25\u201335 minutes; decisions on circuit breakers, algo throttling, and risk limits.",
+        "Phase 3 \u2013 Coordination: 20\u201325 minutes; simulated interactions with exchanges, central counterparties, and regulators.",
+        "Phase 4 \u2013 Debrief: 25\u201330 minutes; performance review and systemic-risk discussion."
+      ]
+    },
+    {
+      "name": "W3-generative-ai-misconduct",
+      "description": "Simulated misuse or malfunction of generative AI in customer communications causing misleading or non-compliant advice at scale.",
+      "scenario_type": "Conduct, regulatory, and reputational crisis affecting multiple business lines.",
+      "inputs": {
+        "synthetic_customer_interactions": 50000,
+        "incident_seed": 7,
+        "ai_failure_pattern": "Prompt-injection-like pattern leading to biased or inaccurate advice for a vulnerable segment.",
+        "time_horizon_minutes": 100,
+        "regulator_profile": "Conduct authority focused on mis-selling and vulnerable customers.",
+        "pre_configured_alerts": [
+          "Unusual clustering of complaint topics.",
+          "Spike in chat-handovers to human agents around specific products.",
+          "Keyword-based detection of problematic advice in logs."
+        ]
+      },
+      "phases": [
+        "Phase 0 \u2013 Briefing: 5\u201310 minutes; roles include head of customer, legal, compliance.",
+        "Phase 1 \u2013 Detection: 20\u201325 minutes; emergent patterns from QA logs and complaints.",
+        "Phase 2 \u2013 Containment: 30\u201335 minutes; decisions on disabling features, issuing corrective guidance, and remediation offers.",
+        "Phase 3 \u2013 Communication: 20\u201325 minutes; simulated regulator/media attention and internal staff comms.",
+        "Phase 4 \u2013 Debrief: 20\u201330 minutes; root-cause framing and conduct-risk implications."
+      ]
+    }
+  ],
+  "controls": {
+    "randomization": {
+      "unit_of_randomization": "executive crisis-response teams (cross-functional groups of 6\u201310 people)",
+      "assignment": "Teams are randomly assigned to either Baseline or Treatment condition for each workload, with counterbalancing across multiple runs so each team eventually experiences both conditions in different scenarios.",
+      "stratification": "Optional stratification by prior incident-management experience to balance expertise across conditions."
+    },
+    "blinding": {
+      "participant_blinding": "Teams are told they are evaluating crisis response approaches but are not explicitly informed which playbook is the AI-specific treatment vs the generic baseline.",
+      "observer_blinding": "Independent scorers assessing metrics receive anonymized logs and artefacts without knowledge of whether they originate from Baseline or Treatment sessions."
+    },
+    "standardization": {
+      "inject_schedule": "Identical sequence and timing of scenario injects for Baseline and Treatment runs of the same workload.",
+      "information_set": "Same underlying data feeds, dashboards, and external queries; only the playbook, roles, and templates differ.",
+      "time_limits": "Fixed time windows for each phase across conditions to ensure comparability.",
+      "team_composition": "Each team includes representatives (or role-players) for business, risk, technology, operations, communications, and legal/compliance where possible."
+    }
+  },
+  "metrics": [
+    {
+      "name": "time_to_ai_crisis_recognition",
+      "description": "Elapsed time from first anomaly alert/inject to explicit recognition and verbalization that this is an AI-driven crisis with AI-specific implications.",
+      "unit": "minutes"
+    },
+    {
+      "name": "time_to_decisive_containment_action",
+      "description": "Elapsed time from first anomaly alert/inject to first clearly documented decisive containment action (e.g., model throttling, kill switch activation, switching to manual process).",
+      "unit": "minutes"
+    },
+    {
+      "name": "harm_exposure_index",
+      "description": "Scenario-specific proxy index for potential customer, market, or conduct harm remaining at simulation end, based on pre-defined mapping from team decisions to quantitative exposure scores.",
+      "unit": "index_points"
+    },
+    {
+      "name": "regulatory_readiness_score",
+      "description": "Expert-rated score of how regulator-ready the team\u2019s notifications, disclosures, and remediation plans are, based on a standardized rubric.",
+      "unit": "score_0_to_10"
+    },
+    {
+      "name": "coordination_effectiveness_score",
+      "description": "Observer-rated effectiveness of cross-functional coordination and role clarity during the incident.",
+      "unit": "score_0_to_10"
+    },
+    {
+      "name": "communication_consistency_score",
+      "description": "Degree of consistency between internal and external messages across channels (staff, regulators, media, customers) as assessed by independent reviewers using a rubric.",
+      "unit": "score_0_to_10"
+    },
+    {
+      "name": "data_and_forensics_completeness",
+      "description": "Proportion of required AI-specific data and evidence artefacts that the team identifies, requests, and logs during the exercise.",
+      "unit": "percentage"
+    },
+    {
+      "name": "playbook_adherence_rate",
+      "description": "Proportion of critical steps in the relevant playbook (generic or AI-specific) that the team executes within the timeline.",
+      "unit": "percentage"
+    },
+    {
+      "name": "participant_confidence_delta",
+      "description": "Change in self-reported confidence in managing AI crises from pre-exercise to post-exercise survey.",
+      "unit": "points_on_5_or_7_point_Likert_scale"
+    },
+    {
+      "name": "post_mortem_actionability_score",
+      "description": "Quality and concreteness of structural improvement actions proposed in the post-incident review.",
+      "unit": "score_0_to_10"
+    }
+  ],
+  "success_criteria": {
+    "primary": [
+      {
+        "metric": "time_to_decisive_containment_action",
+        "criterion": "Median time in the Treatment condition is at least 25% lower than in the Baseline condition across workloads, with statistically significant difference under a non-parametric paired test where applicable."
+      },
+      {
+        "metric": "harm_exposure_index",
+        "criterion": "Mean harm_exposure_index in the Treatment condition is at least 20% lower than in the Baseline condition for each workload, controlling for team differences."
+      }
+    ],
+    "secondary": [
+      {
+        "metric": "regulatory_readiness_score",
+        "criterion": "Average regulatory_readiness_score is at least 2 points higher (on 0\u201310 scale) in Treatment than Baseline."
+      },
+      {
+        "metric": "data_and_forensics_completeness",
+        "criterion": "Treatment teams achieve at least 80% completeness on average, and at least 15 percentage points higher than Baseline."
+      },
+      {
+        "metric": "communication_consistency_score",
+        "criterion": "Treatment teams show statistically higher scores than Baseline with fewer conflicting or ad-hoc messages."
+      },
+      {
+        "metric": "post_mortem_actionability_score",
+        "criterion": "Treatment teams produce more actionable and AI-specific structural fixes, with mean score at least 1.5 points higher than Baseline."
+      }
+    ],
+    "exploratory": [
+      {
+        "metric": "participant_confidence_delta",
+        "criterion": "Treatment sessions produce a greater positive shift in confidence than Baseline sessions while not masking recognition of residual gaps (i.e., no overconfidence spikes)."
+      }
+    ]
+  },
+  "failure_modes": [
+    {
+      "name": "non_comparable_sessions",
+      "description": "Differences in facilitator behaviour, inject timing, or available information across Baseline and Treatment sessions compromise comparability.",
+      "mitigations": [
+        "Script facilitator prompts; use a detailed inject playbook.",
+        "Use a facilitator checklist and audio/video recording to audit adherence.",
+        "Run pilot sessions and refine to reduce variance."
+      ]
+    },
+    {
+      "name": "insufficient_sample_size",
+      "description": "Too few teams or sessions lead to inconclusive differences between conditions.",
+      "mitigations": [
+        "Plan multiple runs per workload with different teams.",
+        "Use within-team crossover designs where teams experience both conditions on different days/workloads.",
+        "Treat results as formative if statistical power is low and document this explicitly."
+      ]
+    },
+    {
+      "name": "role_mismatch_or_underpowered_teams",
+      "description": "Teams lack critical roles (e.g., no risk or communications representation), skewing outcomes.",
+      "mitigations": [
+        "Pre-define minimal role set; enforce through invitations and attendance checks.",
+        "Allow trained observers to \u2018role-play\u2019 missing functions using pre-briefed constraints."
+      ]
+    },
+    {
+      "name": "gaming_or_hindsight_bias",
+      "description": "Participants reuse knowledge from earlier runs or treat exercises as puzzles rather than realistic simulations.",
+      "mitigations": [
+        "Vary scenario specifics across runs while keeping structural difficulty constant.",
+        "Rotate teams and clearly emphasize realism and behavioural authenticity in the briefing.",
+        "Use debriefs to surface and correct unrealistic assumptions."
+      ]
+    },
+    {
+      "name": "measurement_bias",
+      "description": "Observers scoring outputs may unconsciously favour one condition.",
+      "mitigations": [
+        "Use anonymized, time-stamped artefacts for scoring.",
+        "Train multiple scorers and measure inter-rater reliability.",
+        "Resolve scoring discrepancies via predefined rules."
+      ]
+    },
+    {
+      "name": "tooling_complexity_overwhelms_participants",
+      "description": "Dashboards or simulators are too complex for non-technical executives, confounding performance with usability issues.",
+      "mitigations": [
+        "Pilot interfaces with representative executives and simplify iteratively.",
+        "Provide a brief, standardized dashboard walkthrough before each run.",
+        "Ensure both conditions use tools of comparable complexity."
+      ]
+    }
+  ],
+  "required_environment": {
+    "simulation_stack": {
+      "language": "Python >= 3.10",
+      "core_libraries": [
+        "pandas",
+        "numpy",
+        "matplotlib",
+        "seaborn",
+        "networkx",
+        "fastapi or flask (for lightweight web dashboards, optional)",
+        "uvicorn (if using FastAPI)",
+        "jinja2 (for templated communications, optional)"
+      ]
+    },
+    "infrastructure": {
+      "runtime": "Local machines or a shared server; no internet access required once dependencies are installed.",
+      "data": "Synthetic, non-sensitive data sets for credit portfolios, trade flows, customer interactions, and incident logs.",
+      "interfaces": [
+        "Web-based or notebook-based dashboards presenting anomaly timelines and key risk indicators.",
+        "Console or web UI for facilitators to trigger scenario injects and track phase timings."
+      ]
+    },
+    "personnel": {
+      "participants": "Cross-functional executive or senior-management teams (6\u201310 people per team).",
+      "facilitators": "At least one trained facilitator per session to run injects and manage time.",
+      "observers": "1\u20133 observers per session to log decisions, timestamps, and qualitative behaviours."
+    },
+    "governance_and_safety": {
+      "data_protection": "Use only synthetic or fully anonymized data in the repository; no production data.",
+      "psychological_safety": "Set norms emphasizing learning over performance evaluation; avoid individual blame.",
+      "regulatory_sensitivity": "Ensure scenarios are clearly labeled as simulations and not forecasts or representations of specific institutions."
+    }
+  },
+  "run_instructions": [
+    {
+      "step": 1,
+      "title": "Set up repository and dependencies",
+      "details": [
+        "Clone the GitHub repository: `git clone https://github.com/bookauthority/boardroom-blind-spots.git`.",
+        "Navigate to the crisis-simulation module, e.g., `cd boardroom-blind-spots/experiments/chap13_crisis_mgmt`.",
+        "Create and activate a Python virtual environment.",
+        "Install dependencies: `pip install -r requirements.txt`."
+      ]
+    },
+    {
+      "step": 2,
+      "title": "Generate synthetic data and baseline scenarios",
+      "details": [
+        "Run the data-generation script: `python generate_synthetic_data.py --workload all`.",
+        "Verify that synthetic datasets (credit portfolios, trades, chat logs) are created in the designated `data/` directory.",
+        "Optionally inspect sample records to ensure realism and to brief facilitators."
+      ]
+    },
+    {
+      "step": 3,
+      "title": "Configure playbooks and conditions",
+      "details": [
+        "Open the configuration file `config/experiment_config.yaml` (or equivalent).",
+        "For each workload (W1, W2, W3), ensure that both `baseline` and `treatment` playbook paths are correctly specified.",
+        "Assign team IDs and conditions (Baseline/Treatment) in `teams_config.yaml`, following the randomization and counterbalancing plan."
+      ]
+    },
+    {
+      "step": 4,
+      "title": "Start the facilitator console and dashboards",
+      "details": [
+        "Launch the facilitator console: `python run_facilitator_console.py`.",
+        "Launch participant dashboards: `python run_dashboard.py --workload W1` (using different ports or URLs for each team/session).",
+        "Verify that anomaly indicators and base metrics display correctly before participants enter."
+      ]
+    },
+    {
+      "step": 5,
+      "title": "Conduct pre-exercise briefing and surveys",
+      "details": [
+        "Brief participants on objectives, roles, and ground rules without revealing which condition they are in.",
+        "Distribute and collect pre-exercise surveys to measure baseline confidence and perceived readiness.",
+        "Assign explicit roles (incident lead, risk lead, tech lead, comms lead, etc.) following the appropriate playbook."
+      ]
+    },
+    {
+      "step": 6,
+      "title": "Run the simulation phases with scripted injects",
+      "details": [
+        "Start the workload (e.g., `python run_simulation.py --workload W1 --team_id TEAM_A --condition baseline`).",
+        "Use the facilitator console to trigger injects (alerts, regulator calls, media queries) according to the standardized schedule.",
+        "Observers log key decisions, timestamps, and references to playbook use in structured observation forms.",
+        "Adhere strictly to time budgets for each phase; announce transitions clearly."
+      ]
+    },
+    {
+      "step": 7,
+      "title": "Collect artefacts and run post-exercise surveys",
+      "details": [
+        "Export all session logs, decision timelines, and communication drafts to the `results/` directory with unique session IDs.",
+        "Collect completed post-exercise surveys from participants to compute `participant_confidence_delta` and qualitative feedback.",
+        "Save facilitator and observer notes in structured formats (e.g., JSON or CSV) that reference session IDs."
+      ]
+    },
+    {
+      "step": 8,
+      "title": "Score performance and compute metrics",
+      "details": [
+        "Run the scoring script: `python score_sessions.py --results_dir results/`.",
+        "Provide anonymized artefacts to independent scorers for rubric-based metrics (e.g., regulatory_readiness_score).",
+        "Review automatically computed metrics (e.g., time_to_decisive_containment_action, harm_exposure_index) and validate a sample for accuracy.",
+        "Export consolidated metrics to `analysis/metrics.csv` for statistical comparison."
+      ]
+    },
+    {
+      "step": 9,
+      "title": "Analyze differences between baseline and treatment",
+      "details": [
+        "Use the analysis notebook `analysis/compare_conditions.ipynb` (or a Python script) to compare Baseline vs Treatment for each metric and workload.",
+        "Apply simple statistical tests (e.g., Wilcoxon signed-rank for paired data, Mann-Whitney U for independent groups) where sample size permits.",
+        "Generate plots (boxplots, time-series, radar charts) summarizing performance differences for governance audiences."
+      ]
+    },
+    {
+      "step": 10,
+      "title": "Conduct qualitative debrief and identify structural fixes",
+      "details": [
+        "Facilitate a structured debrief using a standardized guide aligned with section 13.8.",
+        "Document proposed structural improvements, mapping them to governance, process, technology, and culture domains.",
+        "Store debrief outputs under session-specific directories to feed into the `post_mortem_actionability_score` rubric."
+      ]
+    }
+  ],
+  "evidence_schema": {
+    "session_metadata": {
+      "session_id": "string (unique identifier, e.g., 'W1_TEAM_A_TREATMENT_RUN1')",
+      "workload_name": "string (e.g., 'W1-credit-approval-spiral')",
+      "condition": "string (one of: 'baseline', 'treatment')",
+      "date": "ISO 8601 datetime",
+      "team_id": "string",
+      "participants": [
+        {
+          "participant_id": "string (pseudonymized)",
+          "role": "string (e.g., 'incident_lead', 'risk', 'tech', 'comms', 'legal')",
+          "seniority_level": "string (e.g., 'board', 'exco', 'senior_management', 'other')"
+        }
+      ]
+    },
+    "timeline_events": [
+      {
+        "timestamp": "ISO 8601 datetime or relative seconds from start",
+        "event_type": "string (e.g., 'alert', 'decision', 'communication_draft', 'escalation', 'inject')",
+        "description": "string",
+        "source": "string (e.g., 'system', 'participant', 'facilitator')",
+        "tags": [
+          "string (e.g., 'ai_specific', 'governance', 'customer_protection')"
+        ]
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "string",
+        "timestamp": "ISO 8601 datetime or relative seconds",
+        "actor_role": "string",
+        "decision_category": "string (e.g., 'containment', 'communication', 'forensics', 'escalation')",
+        "description": "string",
+        "justification": "string (free-text rationale if available)",
+        "linked_events": [
+          "string (IDs of relevant timeline events)"
+        ]
+      }
+    ],
+    "communications": [
+      {
+        "comm_id": "string",
+        "timestamp": "ISO 8601 datetime or relative seconds",
+        "audience": "string (e.g., 'regulator', 'media', 'staff', 'customers', 'board')",
+        "medium": "string (e.g., 'email', 'press_release', 'briefing_note', 'talking_points')",
+        "content": "string or path_to_document",
+        "status": "string (e.g., 'draft', 'sent', 'not_used')"
+      }
+    ],
+    "forensics_requests": [
+      {
+        "request_id": "string",
+        "timestamp": "ISO 8601 datetime or relative seconds",
+        "requested_by_role": "string",
+        "artefact_type": "string (e.g., 'model_snapshot', 'input_logs', 'training_data_sample', 'explainability_report')",
+        "fulfilled": "boolean",
+        "fulfilled_timestamp": "ISO 8601 datetime or null"
+      }
+    ],
+    "survey_responses": {
+      "pre_exercise": [
+        {
+          "participant_id": "string",
+          "confidence_score": "numeric (Likert)",
+          "free_text_concerns": "string"
+        }
+      ],
+      "post_exercise": [
+        {
+          "participant_id": "string",
+          "confidence_score": "numeric (Likert)",
+          "perceived_effectiveness": "numeric (Likert)",
+          "key_learnings": "string"
+        }
+      ]
+    },
+    "observer_ratings": {
+      "coordination_effectiveness_score": "numeric 0\u201310 with rubric reference",
+      "communication_consistency_score": "numeric 0\u201310 with rubric reference",
+      "regulatory_readiness_score": "numeric 0\u201310 with rubric reference",
+      "post_mortem_actionability_score": "numeric 0\u201310 with rubric reference",
+      "notes": "string (qualitative comments)"
+    },
+    "computed_metrics": {
+      "time_to_ai_crisis_recognition": "numeric (minutes)",
+      "time_to_decisive_containment_action": "numeric (minutes)",
+      "harm_exposure_index": "numeric (index_points)",
+      "data_and_forensics_completeness": "numeric (percentage)",
+      "playbook_adherence_rate": "numeric (percentage)",
+      "participant_confidence_delta": "numeric (points_change)",
+      "additional_metrics": {
+        "regulatory_readiness_score": "numeric 0\u201310",
+        "coordination_effectiveness_score": "numeric 0\u201310",
+        "communication_consistency_score": "numeric 0\u201310",
+        "post_mortem_actionability_score": "numeric 0\u201310"
+      }
+    }
+  }
+}
